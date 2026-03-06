@@ -39,7 +39,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       {open && <div className="sidebar-overlay" onClick={onClose} />}
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <Link to="/" className="sidebar-brand" onClick={onClose}>📜 Parable</Link>
+          <Link to="/" className="sidebar-brand" onClick={onClose}>🎓 University</Link>
         </div>
 
         <nav className="sidebar-nav">

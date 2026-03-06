@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <div className="container">
       <header className="home-header">
-        <h1>📜 Parable</h1>
+        <h1>🎓 University</h1>
         <p className="subtitle">Daily Lessons Through Stories</p>
         {!user && (
           <div className="home-cta">
