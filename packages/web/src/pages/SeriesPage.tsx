@@ -79,7 +79,7 @@ export default function SeriesPage() {
           generatingRef.current = gen;
         }
       })
-      .catch(() => setNotFound(true))
+      .catch((err) => console.error('Series load error:', err))
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seriesKey, user]);

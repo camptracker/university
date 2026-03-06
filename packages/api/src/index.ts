@@ -54,7 +54,7 @@ app.use('/api', generalLimiter);
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/auth', authRoutes);
 app.use('/api/series', seriesRoutes);
-app.use('/api/series', subscriptionRoutes);
+app.use('/api', subscriptionRoutes);
 app.use('/api', lessonRoutes);
 app.use('/api/users', userRoutes);
 

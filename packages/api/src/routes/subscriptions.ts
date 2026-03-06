@@ -21,14 +21,14 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 
 // GET /api/subscriptions - user's subscriptions with series populated
-router.get('/', requireAuth, async (req: Request, res: Response) => {
+router.get('/subscriptions', requireAuth, async (req: Request, res: Response) => {
   const userId = req.authUser!.userId;
   const subs = await Subscription.find({ userId }).populate('seriesId');
   res.json(subs);
 });
 
 // POST /api/series/:seriesId/subscribe
-router.post('/:seriesId/subscribe', requireAuth, async (req: Request, res: Response) => {
+router.post('/series/:seriesId/subscribe', requireAuth, async (req: Request, res: Response) => {
   const { seriesId } = req.params;
   const userId = req.authUser!.userId;
 
@@ -56,7 +56,7 @@ router.post('/:seriesId/subscribe', requireAuth, async (req: Request, res: Respo
 });
 
 // DELETE /api/series/:seriesId/subscribe
-router.delete('/:seriesId/subscribe', requireAuth, async (req: Request, res: Response) => {
+router.delete('/series/:seriesId/subscribe', requireAuth, async (req: Request, res: Response) => {
   const { seriesId } = req.params;
   const userId = req.authUser!.userId;
 
