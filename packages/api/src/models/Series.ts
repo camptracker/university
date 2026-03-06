@@ -5,9 +5,9 @@
  * - title: String (required)
  * - key: String (required, unique) — URL slug, e.g. 'stoic-philosophy'
  * - description: String (required) — short summary
- * - anchor: String (required) — core theme that guides AI generation
+ * - anchor: String (required) — Socratic starter question that kicks off the learning journey
  * - emoji: String? — single UI emoji
- * - wisdomLabel: String? — label for wisdom section (e.g. "The Principle")
+ * - theme: String (required) — overarching theme of the series
  * - characters: ICharacter[] — recurring narrative characters, merged across lessons
  * - subscriberCount: Number (default 0) — denormalized; incremented/decremented on subscribe
  * - deletedAt: Date? — soft delete; queries filter { deletedAt: { $exists: false } }
@@ -32,7 +32,7 @@ export interface ISeries extends Document {
   description: string;
   anchor: string;
   emoji?: string;
-  wisdomLabel?: string;
+  theme: string;
   characters: ICharacter[];
   subscriberCount: number;
   deletedAt?: Date;
@@ -54,7 +54,7 @@ const SeriesSchema = new Schema<ISeries>({
   description: { type: String, required: true },
   anchor: { type: String, required: true },
   emoji: String,
-  wisdomLabel: String,
+  theme: { type: String, required: true },
   characters: [CharacterSchema],
   subscriberCount: { type: Number, default: 0 },
   deletedAt: Date,

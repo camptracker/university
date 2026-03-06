@@ -84,7 +84,7 @@ const GROUPS: EndpointGroup[] = [
           { name: 'description', placeholder: 'Description' },
           { name: 'anchor', placeholder: 'Anchor' },
           { name: 'emoji', placeholder: 'Emoji (optional)' },
-          { name: 'wisdomLabel', placeholder: 'wisdomLabel (optional)' },
+          { name: 'theme', placeholder: 'theme (required)' },
         ],
       },
       {

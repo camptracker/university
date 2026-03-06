@@ -1,12 +1,12 @@
 /**
  * Lesson page — URL: /:seriesKey/lesson/:sortOrder
  *
- * Displays a single lesson with three content tabs: Parable, Standard, Sonnet.
+ * Displays a single lesson with three content tabs: Parable, Content, Poem.
  *
  * Data loaded:
  * - GET /api/series → find series by key
  * - GET /api/series/:id/lessons → get lesson list to find lessonId by sortOrder
- * - GET /api/lessons/:lessonId → full lesson with standard populated
+ * - GET /api/lessons/:lessonId → full lesson
  *
  * Key behaviors:
  * - "Mark as Read & Continue" button (shown when isCurrentDay):
@@ -14,16 +14,15 @@
  * - "Mark as read" button (standalone): POST /api/lessons/:id/read
  * - Bottom nav provides prev/next day links (no boundary check)
  * - Scrolls to top on lesson/series change
- * - Standard tab shows: review (if present), concept, whyItMatters, howItWorks,
- *   definitions, wisdom (labeled by series.wisdomLabel), followUpQuestion
+ * - Content tab renders lesson.content as markdown
  */
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import api, { type APILesson, type APISeries, type APIStandard, type APIProgress, type APILessonsResponse } from '../lib/api.js';
+import api, { type APILesson, type APISeries, type APIProgress, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
-type Tab = 'parable' | 'standard' | 'sonnet';
+type Tab = 'parable' | 'content' | 'poem';
 
 export default function LessonPage() {
   const { seriesKey, sortOrder } = useParams<{ seriesKey: string; sortOrder: string }>();
@@ -31,7 +30,6 @@ export default function LessonPage() {
   const navigate = useNavigate();
   const [series, setSeries] = useState<APISeries | null>(null);
   const [lesson, setLesson] = useState<APILesson | null>(null);
-  const [standard, setStandard] = useState<APIStandard | null>(null);
   const [progress, setProgress] = useState<APIProgress | null>(null);
   const [totalLessons, setTotalLessons] = useState(0);
   const [tab, setTab] = useState<Tab>('parable');
@@ -67,7 +65,6 @@ export default function LessonPage() {
       .then(r => {
         if (!r) return;
         setLesson(r.data);
-        if (r.data.standard) setStandard(r.data.standard);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -144,11 +141,11 @@ export default function LessonPage() {
         {lesson.parable && (
           <button className={`toggle-btn ${tab === 'parable' ? 'active' : ''}`} onClick={() => setTab('parable')}>🏰 Parable</button>
         )}
-        {standard && (
-          <button className={`toggle-btn ${tab === 'standard' ? 'active' : ''}`} onClick={() => setTab('standard')}>📖 Standard</button>
+        {lesson.content && (
+          <button className={`toggle-btn ${tab === 'content' ? 'active' : ''}`} onClick={() => setTab('content')}>📖 Lesson</button>
         )}
-        {lesson.sonnet && (
-          <button className={`toggle-btn ${tab === 'sonnet' ? 'active' : ''}`} onClick={() => setTab('sonnet')}>📜 Sonnet</button>
+        {lesson.poem && (
+          <button className={`toggle-btn ${tab === 'poem' ? 'active' : ''}`} onClick={() => setTab('poem')}>📜 Poem</button>
         )}
       </div>
 
@@ -156,52 +153,12 @@ export default function LessonPage() {
         {tab === 'parable' && lesson.parable && (
           <ReactMarkdown>{lesson.parable}</ReactMarkdown>
         )}
-        {tab === 'standard' && standard && (
-          <div className="standard-content">
-            {standard.review && (
-              <div className="standard-section review">
-                <h3>Review</h3>
-                <p>{standard.review}</p>
-              </div>
-            )}
-            <div className="standard-section">
-              <h3>Concept</h3>
-              <p>{standard.concept}</p>
-            </div>
-            <div className="standard-section">
-              <h3>Why It Matters</h3>
-              <p>{standard.whyItMatters}</p>
-            </div>
-            <div className="standard-section">
-              <h3>How It Works</h3>
-              <p>{standard.howItWorks}</p>
-            </div>
-            {standard.definitions.length > 0 && (
-              <div className="standard-section">
-                <h3>Definitions</h3>
-                <dl className="definitions">
-                  {standard.definitions.map(d => (
-                    <div key={d.term} className="definition-item">
-                      <dt>{d.term}</dt>
-                      <dd>{d.definition}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
-            <div className="standard-section wisdom">
-              <h3>{series.wisdomLabel || 'Wisdom'}</h3>
-              <blockquote>{standard.wisdom}</blockquote>
-            </div>
-            <div className="standard-section follow-up">
-              <h3>To Consider</h3>
-              <p className="follow-up-question">{standard.followUpQuestion}</p>
-            </div>
-          </div>
+        {tab === 'content' && lesson.content && (
+          <ReactMarkdown>{lesson.content}</ReactMarkdown>
         )}
-        {tab === 'sonnet' && lesson.sonnet && (
-          <div className="sonnet-content">
-            <ReactMarkdown>{lesson.sonnet}</ReactMarkdown>
+        {tab === 'poem' && lesson.poem && (
+          <div className="poem-content">
+            <ReactMarkdown>{lesson.poem}</ReactMarkdown>
           </div>
         )}
       </article>

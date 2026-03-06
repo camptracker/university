@@ -17,7 +17,6 @@
 import { Router, Request, Response } from 'express';
 import { Series } from '../models/Series.js';
 import { Lesson } from '../models/Lesson.js';
-import { Standard } from '../models/Standard.js';
 import { Subscription } from '../models/Subscription.js';
 import { GenerationJob } from '../models/GenerationJob.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
@@ -108,9 +107,7 @@ router.delete('/:seriesId', requireAdmin, async (req: Request, res: Response) =>
   // Soft delete all lessons
   await Lesson.updateMany({ seriesId }, { deletedAt: new Date() });
 
-  // Clean up standards, subscriptions, jobs
-  const lessonIds = (await Lesson.find({ seriesId }, '_id')).map(l => l._id);
-  await Standard.deleteMany({ lessonId: { $in: lessonIds } });
+  // Clean up subscriptions, jobs
   await Subscription.deleteMany({ seriesId });
   await GenerationJob.deleteOne({ seriesId });
 

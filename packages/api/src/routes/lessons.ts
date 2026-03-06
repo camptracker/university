@@ -5,18 +5,17 @@
  * - GET   /api/series/:seriesId/lessons             — paginated lessons (20/page); optional auth
  *   Returns {lessons, total, page, pages, progress}. Each lesson has dayNumber = sortOrder.
  *   progress is included if user is authenticated.
- * - GET   /api/lessons/:lessonId                    — single lesson with standard populated
+ * - GET   /api/lessons/:lessonId                    — single lesson
  * - DELETE /api/lessons/:lessonId                   — soft delete; admin only
  * - GET   /api/series/:seriesId/progress            — lessons up to currentDay with read status; auth required
  * - PATCH /api/series/:seriesId/progress/advance    — mark current lesson read + advance; auth required
  *   Returns {currentDay, hasNext}. Advances only if next lesson exists.
  * - POST  /api/lessons/:lessonId/read               — upsert Read record; auth required
  *
- * Dependencies: Lesson, Standard, Progress, Read models; requireAuth, optionalAuth, requireAdmin
+ * Dependencies: Lesson, Progress, Read models; requireAuth, optionalAuth, requireAdmin
  */
 import { Router, Request, Response } from 'express';
 import { Lesson } from '../models/Lesson.js';
-import { Standard } from '../models/Standard.js';
 import { Progress } from '../models/Progress.js';
 import { Read } from '../models/Read.js';
 import { requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js';
@@ -52,7 +51,7 @@ router.get('/series/:seriesId/lessons', optionalAuth, async (req: Request, res: 
   res.json({ lessons: lessonsWithDay, total, page, pages: Math.ceil(total / limit), progress });
 });
 
-// GET /api/lessons/:lessonId - with standard populated
+// GET /api/lessons/:lessonId - single lesson
 router.get('/lessons/:lessonId', async (req: Request, res: Response) => {
   try {
     const { lessonId } = req.params;
@@ -67,11 +66,7 @@ router.get('/lessons/:lessonId', async (req: Request, res: Response) => {
       return;
     }
 
-    const standard = lesson.standardId
-      ? await Standard.findById(lesson.standardId)
-      : null;
-
-    res.json({ ...lesson.toObject(), standard });
+    res.json(lesson.toObject());
   } catch (err) {
     console.error('GET /lessons/:lessonId error:', err);
     res.status(500).json({ error: 'Internal server error' });

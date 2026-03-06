@@ -10,8 +10,7 @@
  *
  * Exported interfaces:
  * - APISeries — series object from the API
- * - APILesson — lesson with optional standard, read flag, dayNumber
- * - APIStandard — structured lesson content (concept, definitions, wisdom, etc.)
+ * - APILesson — lesson with content, followUpQuestion, poem, read flag, dayNumber
  * - APIUser — user profile {_id, email, name, picture, role, createdAt}
  * - APISubscription — subscription with seriesId populated as APISeries
  * - APIProgress — {currentDay: number}
@@ -84,7 +83,7 @@ export interface APISeries {
   description: string;
   anchor: string;
   emoji?: string;
-  wisdomLabel?: string;
+  theme: string;
   characters: Character[];
   subscriberCount: number;
   createdAt: string;
@@ -96,26 +95,13 @@ export interface APILesson {
   sortOrder: number;
   dayNumber: number;
   title: string;
+  content: string;
+  followUpQuestion: string;
   date: string;
   image?: string;
   parable?: string;
-  sonnet?: string;
-  standardId?: string;
-  standard?: APIStandard;
+  poem?: string;
   read?: boolean;
-}
-
-export interface APIStandard {
-  _id: string;
-  lessonId: string;
-  seriesId: string;
-  review?: string;
-  concept: string;
-  whyItMatters: string;
-  howItWorks: string;
-  definitions: { term: string; definition: string }[];
-  wisdom: string;
-  followUpQuestion: string;
 }
 
 export interface APIUser {
