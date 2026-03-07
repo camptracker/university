@@ -105,10 +105,10 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
     { upsert: true }
   );
 
-  let aborted = false;
-  req.on('close', async () => {
-    aborted = true;
-    await GenerationJob.deleteOne({ seriesId });
+  let clientDisconnected = false;
+  req.on('close', () => {
+    clientDisconnected = true;
+    // Don't abort generation — let it finish and save to DB
   });
 
   try {
@@ -121,33 +121,30 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
     const formatChars = (chars: { name: string; pronoun: string; role?: string }[]) =>
       chars.length === 0 ? 'None yet — create new characters.' : chars.map(c => `${c.name} (${c.pronoun}, ${c.role || 'character'})`).join(', ');
 
-    // Phase 1: Stream standard lesson (hidden from user, needed for parable context)
-    if (aborted) return;
-    send('phase', { phase: 'standard' });
+    const safeSend = (event: string, data: object) => {
+      if (!clientDisconnected) send(event, data);
+    };
+
+    // Phase 1: Stream standard lesson (needed as context for parable)
+    safeSend('phase', { phase: 'standard' });
     const standardContent = await streamStandardLesson({
       seriesName: series.title,
       seriesTheme: series.theme,
       newDay: nextSortOrder,
       tomorrowQuestion: lastLesson?.followUpQuestion || undefined,
       prevLessons: prevLessonData,
-    }, (text) => {
-      if (!aborted) send('delta', { section: 'standard', text });
-    });
+    }, (text) => safeSend('delta', { section: 'standard', text }));
 
-    // Phase 2: Stream parable (shown first to user)
-    if (aborted) return;
-    send('phase', { phase: 'parable' });
+    // Phase 2: Stream parable
+    safeSend('phase', { phase: 'parable' });
     const parableContent = await streamParable({
       standardContent,
       parableCharacters: formatChars(series.characters || []),
       seriesName: series.title,
-    }, (text) => {
-      if (!aborted) send('delta', { section: 'parable', text });
-    });
+    }, (text) => safeSend('delta', { section: 'parable', text }));
 
     // Phase 3: Generate metadata (non-streaming, fast)
-    if (aborted) return;
-    send('phase', { phase: 'meta' });
+    safeSend('phase', { phase: 'meta' });
     const meta = await generateLessonMeta({
       standardContent,
       parableContent,
@@ -156,9 +153,11 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       existingCharacters: series.characters || [],
     });
 
+    // Send title as soon as we have it
+    safeSend('title', { title: meta.title });
+
     // Phase 4: Generate image
-    if (aborted) return;
-    send('phase', { phase: 'image' });
+    safeSend('phase', { phase: 'image' });
     let imageUrl: string | undefined;
     try {
       imageUrl = await generateAndUploadImage(meta.dallePrompt, series.key, nextSortOrder);
@@ -167,7 +166,6 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
     }
 
     // Save lesson
-    if (aborted) return;
     const lesson = await Lesson.create({
       seriesId: series._id,
       sortOrder: nextSortOrder,
@@ -189,12 +187,12 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
 
     // Cleanup + done
     await GenerationJob.deleteOne({ seriesId });
-    send('done', { lessonId: String(lesson._id), image: imageUrl || null });
-    res.end();
+    safeSend('done', { lessonId: String(lesson._id), image: imageUrl || null });
+    if (!clientDisconnected) res.end();
   } catch (err) {
     console.error('SSE generation error:', err);
     const msg = err instanceof Error ? err.message : 'Generation failed';
-    if (!aborted) {
+    if (!clientDisconnected) {
       send('error', { message: msg });
       res.end();
     }

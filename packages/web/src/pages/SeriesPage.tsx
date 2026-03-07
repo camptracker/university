@@ -1,42 +1,38 @@
 /**
  * Series page — URL: /:seriesKey
  *
- * Shows the lesson list for a series, subscribe/unsubscribe controls, and generation status.
- *
- * Data fetched on load:
- * - GET /api/series → find series by key
- * - GET /api/series/:id/lessons → lesson list with progress
- * - GET /api/subscriptions → check if user is subscribed (auth only)
- * - GET /api/series/:id/generation-status → is a lesson currently generating?
- *
- * Key behaviors:
- * - Polls generation-status every 5s; refreshes lessons when generation finishes
- * - Lessons above currentDay are locked (greyed out, no link) for subscribers
- * - Admin users see a "Generate Next Lesson" button (POST /api/series/:id/generate)
- * - Subscribe/unsubscribe updates subscriberCount optimistically
- * - Redirects to / if series not found
+ * Shows lesson list. When 0 lessons + admin, auto-starts SSE to generate first lesson
+ * and shows a placeholder card that fills in with title + image. Clicking navigates
+ * to the lesson page. For subsequent lessons, "Generate Next Lesson" navigates to
+ * lesson page with ?stream=true.
  */
 import { Link, useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import api, { type APISeries, type APILesson, type APIProgress, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
+const API_BASE = (api.defaults.baseURL || '').replace(/\/api$/, '');
+
 export default function SeriesPage() {
   const { seriesKey } = useParams<{ seriesKey: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [series, setSeries] = useState<APISeries | null>(null);
   const [lessons, setLessons] = useState<APILesson[]>([]);
   const [total, setTotal] = useState(0);
   const [subscribed, setSubscribed] = useState(false);
   const [progress, setProgress] = useState<APIProgress | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [genLoading, setGenLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [subLoading, setSubLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const navigate = useNavigate();
-  const generatingRef = useRef(false);
-  const seriesIdRef = useRef<string | null>(null);
+
+  // First-lesson streaming placeholder state
+  const [placeholderTitle, setPlaceholderTitle] = useState<string | null>(null);
+  const [placeholderImage, setPlaceholderImage] = useState<string | null>(null);
+  const [placeholderPhase, setPlaceholderPhase] = useState<string>('');
+  const esRef = useRef<EventSource | null>(null);
+  const autoStartedRef = useRef(false);
 
   const fetchLessons = (seriesId: string) => {
     return api.get<APILessonsResponse>(`/series/${seriesId}/lessons`)
@@ -56,9 +52,7 @@ export default function SeriesPage() {
         const found = r.data.find(s => s.key === seriesKey);
         if (!found) { setNotFound(true); return; }
         setSeries(found);
-        seriesIdRef.current = found._id;
 
-        // Fetch remaining data independently — don't let one failure break all
         const [lessonsRes, subsRes, statusRes] = await Promise.allSettled([
           api.get<APILessonsResponse>(`/series/${found._id}/lessons`),
           user ? api.get<{ _id: string; seriesId: APISeries }[]>('/subscriptions') : Promise.resolve(null),
@@ -75,15 +69,61 @@ export default function SeriesPage() {
           setSubscribed(!!sub);
         }
         if (statusRes.status === 'fulfilled' && statusRes.value) {
-          const gen = statusRes.value.data.generating;
-          setGenerating(gen);
-          generatingRef.current = gen;
+          setGenerating(statusRes.value.data.generating);
         }
       })
       .catch((err) => console.error('Series load error:', err))
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seriesKey, user]);
+
+  // Auto-start first lesson generation if 0 lessons and admin
+  useEffect(() => {
+    if (!series || loading || autoStartedRef.current) return;
+    if (lessons.length > 0 || generating) return;
+    if (user?.role !== 'admin') return;
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    autoStartedRef.current = true;
+    setGenerating(true);
+
+    const es = new EventSource(`${API_BASE}/api/series/${series._id}/generate-stream?token=${token}`);
+    esRef.current = es;
+
+    es.addEventListener('title', (e) => {
+      const { title } = JSON.parse(e.data);
+      setPlaceholderTitle(title);
+    });
+
+    es.addEventListener('phase', (e) => {
+      const { phase } = JSON.parse(e.data);
+      setPlaceholderPhase(phase);
+    });
+
+    es.addEventListener('done', (e) => {
+      const { image } = JSON.parse(e.data);
+      if (image) setPlaceholderImage(image);
+      es.close();
+      esRef.current = null;
+      setGenerating(false);
+      // Refresh lessons to get the saved lesson
+      fetchLessons(series._id);
+    });
+
+    es.addEventListener('error', () => {
+      es.close();
+      esRef.current = null;
+      setGenerating(false);
+    });
+
+    return () => { es.close(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [series, loading, lessons.length, generating, user]);
+
+  // Cleanup SSE on unmount
+  useEffect(() => () => { esRef.current?.close(); }, []);
 
   const handleSubscribe = async () => {
     if (!series || !user) return;
@@ -98,7 +138,6 @@ export default function SeriesPage() {
         await api.post(`/series/${series._id}/subscribe`);
         setSubscribed(true);
         setSeries(prev => prev ? { ...prev, subscriberCount: prev.subscriberCount + 1 } : prev);
-        // Refresh to get new progress
         fetchLessons(series._id);
       }
     } catch (err) {
@@ -110,7 +149,6 @@ export default function SeriesPage() {
 
   const handleGenerate = () => {
     if (!series || generating) return;
-    // Navigate to lesson page with stream param — it handles the SSE
     const nextDay = (lessons.length > 0 ? Math.max(...lessons.map(l => l.sortOrder)) : 0) + 1;
     navigate(`/${series.key}/lesson/${nextDay}?stream=true`);
   };
@@ -118,6 +156,13 @@ export default function SeriesPage() {
   if (notFound) return <Navigate to="/" replace />;
   if (loading) return <div className="container"><div className="loading">Loading...</div></div>;
   if (!series) return null;
+
+  const phaseLabel: Record<string, string> = {
+    standard: 'Writing lesson...',
+    parable: 'Writing parable...',
+    meta: 'Finishing up...',
+    image: 'Generating image...',
+  };
 
   return (
     <div className="container">
@@ -161,17 +206,32 @@ export default function SeriesPage() {
             </div>
           </Link>
         ))}
-        {lessons.length === 0 && (
-          <p className="empty-state">{generating ? 'Generating first lesson…' : 'Lessons are being generated...'}</p>
+
+        {/* Placeholder card for first lesson being generated */}
+        {generating && lessons.length === 0 && (
+          <Link
+            to={`/${series.key}/lesson/1?stream=true`}
+            className="lesson-card"
+            onClick={() => { esRef.current?.close(); esRef.current = null; }}
+          >
+            {placeholderImage ? (
+              <img src={placeholderImage} alt={placeholderTitle || 'Generating...'} className="lesson-card-img" />
+            ) : (
+              <div className="skeleton-img" />
+            )}
+            <div className="lesson-card-text">
+              <span className="lesson-day">Day 1</span>
+              <span className="lesson-title">
+                {placeholderTitle || (phaseLabel[placeholderPhase] || 'Generating...')}
+              </span>
+            </div>
+          </Link>
         )}
       </div>
 
-      {user?.role === 'admin' && !generating && (
+      {user?.role === 'admin' && !generating && lessons.length > 0 && (
         <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-          <button
-            className="btn-subscribe"
-            onClick={handleGenerate}
-          >
+          <button className="btn-subscribe" onClick={handleGenerate}>
             Generate Next Lesson
           </button>
         </div>
