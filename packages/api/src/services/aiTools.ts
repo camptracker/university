@@ -1,32 +1,27 @@
 /**
  * Anthropic Claude AI tool-use wrappers for lesson content generation.
  *
- * All functions use forced tool use (tool_choice: {type: "tool", name: ...}) with
- * claude-opus-4-6 to guarantee structured JSON output. Each function maps to one
- * Claude tool with a defined input_schema.
+ * Uses a single system-prompt-driven call to generate all lesson content at once:
+ * standard lesson, parable, sonnet, and DALL-E prompt — in one Claude request.
  *
  * Exported functions:
  * - `createSeriesDetails(topic)` → SeriesDetails — series metadata from a topic string
- * - `generateLesson(seriesContext, previousQuestion, prevLessons)` → LessonOutput — lesson content (markdown)
- *   For lesson 1, pass previousQuestion as null (uses series anchor). Includes followUpQuestion.
- * - `generateParable(lesson, existingCharacters)` → ParableOutput — narrative story + character list
- *   Creates new characters on first lesson; reuses/extends them on subsequent lessons
- * - `generatePoem(lessonOutput)` → PoemOutput — haiku (5-7-5)
- * - `generateImagePrompt(poem)` → {prompt} — classical oil painting DALL-E prompt
+ * - `generateFullLesson(opts)` → FullLessonOutput — all content in one call
  *
- * Exported interfaces: SeriesDetails, LessonOutput, ParableOutput, PoemOutput
+ * Exported interfaces: SeriesDetails, FullLessonOutput
  * Internal: callTool<T> — generic wrapper around anthropic.messages.create
  */
 import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-async function callTool<T>(toolName: string, toolDef: Anthropic.Tool, messages: Anthropic.MessageParam[]): Promise<T> {
+async function callTool<T>(toolName: string, toolDef: Anthropic.Tool, messages: Anthropic.MessageParam[], system?: string): Promise<T> {
   const response = await anthropic.messages.create({
     model: 'claude-opus-4-6',
     max_tokens: 4096,
     tools: [toolDef],
     tool_choice: { type: 'tool', name: toolName },
+    ...(system ? { system } : {}),
     messages,
   });
 
@@ -34,6 +29,8 @@ async function callTool<T>(toolName: string, toolDef: Anthropic.Tool, messages: 
   if (!toolUse) throw new Error(`No tool use found in response for ${toolName}`);
   return toolUse.input as T;
 }
+
+// ─── Series Details ───────────────────────────────────────────────────────────
 
 export interface SeriesDetails {
   title: string;
@@ -63,88 +60,97 @@ export async function createSeriesDetails(topic: string): Promise<SeriesDetails>
   }, [{ role: 'user', content: `Create series metadata for a University series about: ${topic}` }]);
 }
 
-export interface LessonOutput {
+// ─── Full Lesson Generation (single call) ─────────────────────────────────────
+
+export interface FullLessonOutput {
   title: string;
-  content: string; // markdown
+  standard: string;
+  parable: string;
+  sonnet: string;
+  dallePrompt: string;
   followUpQuestion: string;
-}
-
-export async function generateLesson(
-  seriesContext: { title: string; anchor: string; description: string; theme: string },
-  previousQuestion: string | null,
-  prevLessons: { title: string; followUpQuestion: string }[]
-): Promise<LessonOutput> {
-  const question = previousQuestion ?? seriesContext.anchor;
-  const isFirst = previousQuestion === null;
-
-  const prevSection = prevLessons.length > 0
-    ? `\nPreviously covered titles (DO NOT repeat):\n${prevLessons.map(l => `- "${l.title}"`).join('\n')}\n\nPreviously asked follow-up questions (DO NOT repeat):\n${prevLessons.map(l => `- ${l.followUpQuestion}`).join('\n')}\n`
-    : '';
-
-  return callTool<LessonOutput>('generate_lesson', {
-    name: 'generate_lesson',
-    description: 'Generate a lesson that answers a Socratic question with markdown content',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        title: { type: 'string', description: 'Lesson title — short and simple, 3-6 words max, no fancy vocabulary' },
-        content: {
-          type: 'string',
-          description: 'Markdown lesson content. Explain like I am 5 years old — use simple words, short sentences, and relatable everyday analogies. Must include: answer to the question, key concepts, why it matters, how it works, and a wisdom quote with attribution. Be brief — aim for 150-250 words total.',
-        },
-        followUpQuestion: {
-          type: 'string',
-          description: 'A Socratic follow-up question (why/what/how) that arises naturally from the lesson content and provokes deeper thinking',
-        },
-      },
-      required: ['title', 'content', 'followUpQuestion'],
-    },
-  }, [{
-    role: 'user',
-    content: `Generate a lesson for a University series.
-
-Series: ${seriesContext.title}
-Theme: ${seriesContext.theme}
-Description: ${seriesContext.description}
-
-${isFirst ? 'Opening question (series anchor)' : 'Question to answer in this lesson'}: "${question}"
-${prevSection}
-Write a markdown lesson that:
-- Explains like I'm 5 years old — simple words, short sentences, everyday analogies
-- Directly answers the question above
-- Defines key concepts in plain language (no jargon)
-- Explains why it matters and how it works using relatable examples
-- Includes a relevant wisdom quote with its source
-- Aim for 150-250 words total — be punchy, not wordy
-- Use short headers and 1-2 sentence paragraphs max
-
-The followUpQuestion should be a simple, curious question that a child might ask after hearing this — Socratic but accessible.`,
-  }]);
-}
-
-export interface ParableOutput {
-  content: string;
   characters: { name: string; pronoun: string; age?: string; personality?: string; role?: string }[];
 }
 
-export async function generateParable(
-  lesson: LessonOutput,
-  existingCharacters: { name: string; pronoun: string; age?: string; personality?: string; role?: string }[]
-): Promise<ParableOutput> {
-  const charsDesc = existingCharacters.length > 0
-    ? `Existing characters:\n${existingCharacters.map(c => `- ${c.name} (${c.pronoun}, ${c.role || 'character'})`).join('\n')}`
-    : 'No existing characters — create a cast for this series.';
+export interface GenerateFullLessonOpts {
+  seriesName: string;
+  seriesTheme: string;
+  seriesEmoji: string;
+  parableCharacters: string; // e.g. "Kael (village boy), Sable (elder)"
+  newDay: number;
+  tomorrowQuestion?: string; // previous lesson's followUpQuestion (null for day 1)
+  prevLessons: { title: string; followUpQuestion: string }[];
+  existingCharacters: { name: string; pronoun: string; age?: string; personality?: string; role?: string }[];
+}
 
-  return callTool<ParableOutput>('generate_parable', {
-    name: 'generate_parable',
-    description: 'Generate a parable story illustrating the lesson concept',
+export async function generateFullLesson(opts: GenerateFullLessonOpts): Promise<FullLessonOutput> {
+  const {
+    seriesName, seriesTheme, seriesEmoji, parableCharacters,
+    newDay, tomorrowQuestion, prevLessons, existingCharacters,
+  } = opts;
+
+  const wisdomLabel = 'Real-World Wisdom';
+
+  // Build history block
+  const historyBlock = prevLessons.length > 0
+    ? `Previously covered lessons (DO NOT repeat topics or questions):\n${prevLessons.map((l, i) => `- Day ${i + 1}: "${l.title}" (Q: ${l.followUpQuestion})`).join('\n')}`
+    : '';
+
+  const systemPrompt = `You are a lesson generator for the "${seriesName}" series.
+Theme: ${seriesTheme}
+Emoji: ${seriesEmoji}
+Parable Characters: ${parableCharacters}
+${historyBlock}
+
+Generate a lesson in JSON format with these exact keys: standard, parable, sonnet, dallePrompt
+
+The "standard" must follow this format exactly:
+
+${seriesEmoji} Day ${newDay}: [Title]
+
+${tomorrowQuestion ? `[IMPORTANT: The previous lesson ended with this question: "${tomorrowQuestion}" — You MUST open the lesson by directly answering this question in 2-3 sentences before moving on. This creates continuity between lessons.]` : `[Brief intro to the topic if Day 1]`}
+
+🧱 The Concept
+[1-2 sentences]
+
+❓ Why It Matters
+[2-3 sentences]
+
+⚙️ How It Works
+[3-5 sentences with concrete examples]
+
+🎯 ${wisdomLabel}
+[1-2 sentences]
+
+❓ Tomorrow's Question
+— Use the Socratic method: ask a thought-provoking question that challenges assumptions, invites deeper thinking, and naturally leads to the next concept. Don't ask a simple factual question — ask one that makes the reader wrestle with an idea.
+IMPORTANT: Do NOT repeat or rephrase any previous question listed above.
+
+Use ** for bold markdown on section headers and key terms.
+
+The "parable" must continue the story using ${parableCharacters}, teaching the EXACT same concept as the standard. End with a moral and a teaser for tomorrow. Use rich, literary prose.
+
+The "sonnet" must be a 14-line Shakespearean sonnet (ABAB CDCD EFEF GG), titled "🪶 Sonnet [Roman numeral for day ${newDay}]: [Title]". Wrap the title in bold. The final couplet must be italicized with *. The sonnet should capture the lesson's essence poetically.
+
+The "dallePrompt" should describe a classical oil painting scene inspired by the sonnet's imagery. Do NOT include this boilerplate in dallePrompt — just describe the scene. I will add the style instructions.
+
+Return ONLY valid JSON. No markdown code fences. No explanation.`;
+
+  return callTool<FullLessonOutput>('generate_full_lesson', {
+    name: 'generate_full_lesson',
+    description: 'Generate a complete lesson with standard content, parable, sonnet, and DALL-E prompt',
     input_schema: {
       type: 'object' as const,
       properties: {
-        content: { type: 'string', description: 'The full parable story in markdown format' },
+        title: { type: 'string', description: 'Short lesson title (3-6 words)' },
+        standard: { type: 'string', description: 'The full standard lesson in markdown, following the exact format from the system prompt' },
+        parable: { type: 'string', description: 'The parable story continuing the series narrative, in markdown' },
+        sonnet: { type: 'string', description: 'A 14-line Shakespearean sonnet (ABAB CDCD EFEF GG) with bold title and italicized couplet' },
+        dallePrompt: { type: 'string', description: 'Classical oil painting scene description inspired by the sonnet imagery' },
+        followUpQuestion: { type: 'string', description: 'The Tomorrow\'s Question from the standard lesson — a Socratic question for the next lesson' },
         characters: {
           type: 'array',
-          description: 'Full character list including any new characters introduced',
+          description: 'Full character list including any new characters introduced in the parable',
           items: {
             type: 'object',
             properties: {
@@ -158,65 +164,9 @@ export async function generateParable(
           },
         },
       },
-      required: ['content', 'characters'],
+      required: ['title', 'standard', 'parable', 'sonnet', 'dallePrompt', 'followUpQuestion', 'characters'],
     },
-  }, [{
-    role: 'user',
-    content: `Write a parable story illustrating this lesson:
-
-Title: ${lesson.title}
-Content: ${lesson.content}
-
-${charsDesc}
-
-Write a short, vivid story (2-3 paragraphs in markdown) that shows the concept in action through the characters. Keep the language simple and the story easy to follow — like a fable or bedtime story. Include or introduce characters as needed.`,
-  }]);
-}
-
-export interface PoemOutput {
-  title: string;
-  content: string; // haiku (5-7-5)
-}
-
-export async function generatePoem(lessonOutput: LessonOutput): Promise<PoemOutput> {
-  return callTool<PoemOutput>('generate_poem', {
-    name: 'generate_poem',
-    description: 'Generate a haiku about the lesson',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        title: { type: 'string', description: 'Title of the haiku' },
-        content: { type: 'string', description: 'Three lines: 5 syllables, 7 syllables, 5 syllables' },
-      },
-      required: ['title', 'content'],
-    },
-  }, [{
-    role: 'user',
-    content: `Write a haiku that captures the essence of this lesson:
-Title: ${lessonOutput.title}
-Content: ${lessonOutput.content}
-
-Generate a haiku (three lines: 5 syllables, 7 syllables, 5 syllables).`,
-  }]);
-}
-
-export async function generateImagePrompt(poem: PoemOutput): Promise<{ prompt: string }> {
-  return callTool<{ prompt: string }>('generate_image_prompt', {
-    name: 'generate_image_prompt',
-    description: 'Generate a DALL-E image prompt for the lesson',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        prompt: { type: 'string', description: 'Classical oil painting prompt, Rembrandt lighting style, no text or words' },
-      },
-      required: ['prompt'],
-    },
-  }, [{
-    role: 'user',
-    content: `Create a DALL-E 3 image prompt for this haiku:
-Title: ${poem.title}
-Content: ${poem.content}
-
-Requirements: Classical oil painting style, Rembrandt dramatic lighting, rich colors, no text or words in image, suitable for a literary educational app.`,
-  }]);
+  }, [
+    { role: 'user', content: `Generate Day ${newDay} lesson for the "${seriesName}" series.` },
+  ], systemPrompt);
 }

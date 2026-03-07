@@ -27,11 +27,8 @@ import { Subscription } from '../models/Subscription.js';
 import { GenerationJob } from '../models/GenerationJob.js';
 import {
   createSeriesDetails,
-  generateLesson,
-  generateParable,
-  generatePoem,
-  generateImagePrompt,
-  LessonOutput,
+  generateFullLesson,
+  FullLessonOutput,
 } from './aiTools.js';
 import { generateAndUploadImage } from './imageService.js';
 
@@ -77,25 +74,30 @@ async function releaseJob(seriesId: string): Promise<void> {
 
 // ─── Core Generation ──────────────────────────────────────────────────────────
 
-export async function createFirstLessonForSeries(series: ISeries): Promise<void> {
-  const lessonOutput = await generateLesson(
-    { title: series.title, anchor: series.anchor, description: series.description, theme: series.theme },
-    null,
-    []
-  );
+function formatCharacters(characters: { name: string; pronoun: string; role?: string }[]): string {
+  if (characters.length === 0) return 'None yet — create new characters for this series.';
+  return characters.map(c => `${c.name} (${c.pronoun}, ${c.role || 'character'})`).join(', ');
+}
 
-  // Generate parable (initializes characters)
-  const parable = await generateParable(lessonOutput, series.characters || []);
+export async function createFirstLessonForSeries(series: ISeries): Promise<void> {
+  const result = await generateFullLesson({
+    seriesName: series.title,
+    seriesTheme: series.theme,
+    seriesEmoji: series.emoji || '📚',
+    parableCharacters: formatCharacters(series.characters || []),
+    newDay: 1,
+    tomorrowQuestion: undefined,
+    prevLessons: [],
+    existingCharacters: series.characters || [],
+  });
 
   // Save characters to series
-  await Series.findByIdAndUpdate(series._id, { characters: parable.characters });
+  await Series.findByIdAndUpdate(series._id, { characters: result.characters });
 
-  // Generate poem + image
-  const poem = await generatePoem(lessonOutput);
-  const imagePromptResult = await generateImagePrompt(poem);
+  // Generate image
   let imageUrl: string | undefined;
   try {
-    imageUrl = await generateAndUploadImage(imagePromptResult.prompt, series.key, 1);
+    imageUrl = await generateAndUploadImage(result.dallePrompt, series.key, 1);
   } catch (err) {
     console.error('Image generation failed:', err);
   }
@@ -104,13 +106,13 @@ export async function createFirstLessonForSeries(series: ISeries): Promise<void>
   await Lesson.create({
     seriesId: series._id,
     sortOrder: 1,
-    title: lessonOutput.title,
-    content: lessonOutput.content,
-    followUpQuestion: lessonOutput.followUpQuestion,
+    title: result.title,
+    content: result.standard,
+    followUpQuestion: result.followUpQuestion,
     date: new Date(),
     image: imageUrl,
-    parable: parable.content,
-    poem: `# ${poem.title}\n\n${poem.content}`,
+    parable: result.parable,
+    poem: result.sonnet,
   });
 }
 
@@ -137,28 +139,29 @@ export async function createLessonForSeries(seriesId: string): Promise<void> {
     const prevFollowUpQuestion = lastLesson?.followUpQuestion || '';
     const nextSortOrder = (lastLesson?.sortOrder || 0) + 1;
 
-    const lessonOutput = await generateLesson(
-      { title: series.title, anchor: series.anchor, description: series.description, theme: series.theme },
-      prevFollowUpQuestion,
-      prevLessonData
-    );
-
-    const parable = await generateParable(lessonOutput, series.characters || []);
+    const result = await generateFullLesson({
+      seriesName: series.title,
+      seriesTheme: series.theme,
+      seriesEmoji: series.emoji || '📚',
+      parableCharacters: formatCharacters(series.characters || []),
+      newDay: nextSortOrder,
+      tomorrowQuestion: prevFollowUpQuestion || undefined,
+      prevLessons: prevLessonData,
+      existingCharacters: series.characters || [],
+    });
 
     // Merge new characters
     const existingNames = new Set(series.characters.map(c => c.name));
-    const newChars = parable.characters.filter(c => !existingNames.has(c.name));
+    const newChars = result.characters.filter(c => !existingNames.has(c.name));
     if (newChars.length > 0) {
       await Series.findByIdAndUpdate(series._id, {
         $push: { characters: { $each: newChars } },
       });
     }
 
-    const poem = await generatePoem(lessonOutput);
-    const imagePromptResult = await generateImagePrompt(poem);
     let imageUrl: string | undefined;
     try {
-      imageUrl = await generateAndUploadImage(imagePromptResult.prompt, series.key, nextSortOrder);
+      imageUrl = await generateAndUploadImage(result.dallePrompt, series.key, nextSortOrder);
     } catch (err) {
       console.error('Image generation failed:', err);
     }
@@ -166,13 +169,13 @@ export async function createLessonForSeries(seriesId: string): Promise<void> {
     await Lesson.create({
       seriesId: series._id,
       sortOrder: nextSortOrder,
-      title: lessonOutput.title,
-      content: lessonOutput.content,
-      followUpQuestion: lessonOutput.followUpQuestion,
+      title: result.title,
+      content: result.standard,
+      followUpQuestion: result.followUpQuestion,
       date: new Date(),
       image: imageUrl,
-      parable: parable.content,
-      poem: `# ${poem.title}\n\n${poem.content}`,
+      parable: result.parable,
+      poem: result.sonnet,
     });
   } finally {
     await releaseJob(seriesId);
@@ -219,5 +222,5 @@ export async function createSeriesWithFirstLesson(topic: string, userId: string)
   return series;
 }
 
-// ─── LessonOutput helper (used in AI tools) ────────────────────────────────────
-export type { LessonOutput };
+// ─── FullLessonOutput helper ────────────────────────────────────────────────────
+export type { FullLessonOutput };
