@@ -44,6 +44,13 @@ router.get('/debug-count', async (_req: Request, res: Response) => {
   });
 });
 
+// DEBUG: undelete all series
+router.post('/undelete-all', async (_req: Request, res: Response) => {
+  const result = await Series.updateMany({}, { $unset: { deletedAt: 1 } });
+  const lessonResult = await Lesson.updateMany({}, { $unset: { deletedAt: 1 } });
+  res.json({ seriesUpdated: result.modifiedCount, lessonsUpdated: lessonResult.modifiedCount });
+});
+
 // GET /api/series/popular - top 20 by subscriberCount
 router.get('/popular', async (_req: Request, res: Response) => {
   const seriesList = await Series.find({ deletedAt: { $exists: false } })
