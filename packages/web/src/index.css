@@ -222,6 +222,18 @@ body {
   overflow: hidden;
 }
 .lesson-hero img { width: 100%; height: auto; display: block; }
+.image-placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(110deg, var(--surface) 30%, var(--surface-hover) 50%, var(--surface) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
 /* Lesson page */
 .top-nav { margin-bottom: 1.5rem; padding-top: 1rem; }

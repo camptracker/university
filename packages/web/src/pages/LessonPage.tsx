@@ -214,11 +214,13 @@ export default function LessonPage() {
           <span>Day {sortNum}</span>
         </nav>
 
-        {streamImage && (
-          <div className="lesson-hero">
+        <div className="lesson-hero">
+          {streamImage ? (
             <img src={streamImage} alt="Lesson" />
-          </div>
-        )}
+          ) : (
+            <div className="image-placeholder" />
+          )}
+        </div>
 
         <header className="lesson-header">
           <span className="lesson-day-badge">Day {sortNum}</span>
