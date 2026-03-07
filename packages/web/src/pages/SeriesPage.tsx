@@ -179,18 +179,6 @@ export default function SeriesPage() {
         </div>
       </header>
 
-      {user?.role === 'admin' && (
-        <div style={{ marginBottom: '1rem' }}>
-          <button
-            className="btn-subscribe"
-            onClick={handleGenerate}
-            disabled={generating || genLoading}
-          >
-            {generating || genLoading ? '⏳ Generating…' : 'Generate Next Lesson'}
-          </button>
-        </div>
-      )}
-
       {subscribed && total > 0 && (
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
           Day {currentDay} of {total} lesson{total !== 1 ? 's' : ''}
@@ -240,13 +228,27 @@ export default function SeriesPage() {
           <p className="empty-state">{generating ? 'Generating first lesson…' : 'Lessons are being generated...'}</p>
         )}
         {generating && lessons.length > 0 && (
-          <div className="lesson-card" style={{ opacity: 0.5, cursor: 'default', justifyContent: 'center' }}>
-            <div className="lesson-card-text" style={{ textAlign: 'center' }}>
-              <span className="lesson-title">⏳ Generating next lesson…</span>
+          <div className="lesson-card lesson-card-skeleton">
+            <div className="skeleton-img" />
+            <div className="lesson-card-text">
+              <div className="skeleton-line skeleton-short" />
+              <div className="skeleton-line skeleton-long" />
             </div>
           </div>
         )}
       </div>
+
+      {user?.role === 'admin' && !generating && (
+        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+          <button
+            className="btn-subscribe"
+            onClick={handleGenerate}
+            disabled={genLoading}
+          >
+            {genLoading ? '⏳ Starting…' : 'Generate Next Lesson'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
