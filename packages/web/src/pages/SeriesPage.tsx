@@ -151,8 +151,6 @@ export default function SeriesPage() {
   if (loading) return <div className="container"><div className="loading">Loading...</div></div>;
   if (!series) return null;
 
-  const currentDay = progress?.currentDay ?? 1;
-
   return (
     <div className="container">
       <nav className="breadcrumb">
@@ -178,51 +176,23 @@ export default function SeriesPage() {
         </div>
       </header>
 
-      {subscribed && total > 0 && (
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-          Day {currentDay} of {total} lesson{total !== 1 ? 's' : ''}
-        </p>
-      )}
-
-      {!subscribed && user && lessons.length > 0 && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
-          <p style={{ margin: '0 0 0.75rem' }}>Subscribe to track your progress through this series.</p>
-          <button className="btn-subscribe" onClick={handleSubscribe} disabled={subLoading}>
-            Subscribe to start learning
-          </button>
-        </div>
-      )}
-
       <div className="lesson-list">
-        {lessons.map(lesson => {
-          const isLocked = subscribed && lesson.sortOrder > currentDay;
-
-          if (isLocked) {
-            return (
-              <div key={lesson._id} className="lesson-card" style={{ opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' }}>
-                {lesson.image && (
-                  <img src={lesson.image} alt={lesson.title} className="lesson-card-img" />
-                )}
-                <div className="lesson-card-text">
-                  <span className="lesson-day">Day {lesson.sortOrder}</span>
-                  <span className="lesson-title">{lesson.title} 🔒</span>
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <Link to={`/${series.key}/lesson/${lesson.sortOrder}`} key={lesson._id} className="lesson-card">
-              {lesson.image && (
-                <img src={lesson.image} alt={lesson.title} className="lesson-card-img" />
-              )}
-              <div className="lesson-card-text">
-                <span className="lesson-day">Day {lesson.sortOrder}</span>
-                <span className="lesson-title">{lesson.title}</span>
-              </div>
-            </Link>
-          );
-        })}
+        {lessons.map(lesson => (
+          <Link
+            to={`/${series.key}/lesson/${lesson.sortOrder}`}
+            key={lesson._id}
+            className="lesson-card"
+            style={lesson.read ? { opacity: 0.5 } : undefined}
+          >
+            {lesson.image && (
+              <img src={lesson.image} alt={lesson.title} className="lesson-card-img" />
+            )}
+            <div className="lesson-card-text">
+              <span className="lesson-day">Day {lesson.sortOrder}</span>
+              <span className="lesson-title">{lesson.title}{lesson.read ? ' ✓' : ''}</span>
+            </div>
+          </Link>
+        ))}
         {lessons.length === 0 && (
           <p className="empty-state">{generating ? 'Generating first lesson…' : 'Lessons are being generated...'}</p>
         )}

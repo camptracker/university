@@ -16,11 +16,11 @@
  * - Scrolls to top on lesson/series change
  * - Content tab renders lesson.content as markdown
  */
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import api, { type APILesson, type APISeries, type APIProgress, type APILessonsResponse } from '../lib/api.js';
+import api, { type APILesson, type APISeries, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
 type Tab = 'parable' | 'content';
@@ -28,15 +28,11 @@ type Tab = 'parable' | 'content';
 export default function LessonPage() {
   const { seriesKey, sortOrder } = useParams<{ seriesKey: string; sortOrder: string }>();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [series, setSeries] = useState<APISeries | null>(null);
   const [lesson, setLesson] = useState<APILesson | null>(null);
-  const [progress, setProgress] = useState<APIProgress | null>(null);
   const [totalLessons, setTotalLessons] = useState(0);
   const [tab, setTab] = useState<Tab>('parable');
   const [loading, setLoading] = useState(true);
-  const [marked, setMarked] = useState(false);
-  const [advancing, setAdvancing] = useState(false);
 
   useEffect(() => { window.scrollTo(0, 0); }, [seriesKey, sortOrder]);
 
@@ -56,7 +52,6 @@ export default function LessonPage() {
       })
       .then(r => {
         if (!r || !foundSeries) return;
-        setProgress(r.data.progress);
         setTotalLessons(r.data.total);
         const all = r.data.lessons;
         const found = all.find(l => l.sortOrder === Number(sortOrder));
@@ -66,47 +61,19 @@ export default function LessonPage() {
       .then(r => {
         if (!r) return;
         setLesson(r.data);
+        // Auto mark as read
+        if (user) {
+          api.post(`/lessons/${r.data._id}/read`).catch(() => {});
+        }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [seriesKey, sortOrder]);
-
-  const handleMarkRead = async () => {
-    if (!lesson || !user) return;
-    try {
-      await api.post(`/lessons/${lesson._id}/read`);
-      setMarked(true);
-    } catch (err) {
-      console.error('Mark read error:', err);
-    }
-  };
-
-  const handleAdvance = async () => {
-    if (!lesson || !series || !user || !progress) return;
-    setAdvancing(true);
-    try {
-      const res = await api.patch<{ currentDay: number; hasNext: boolean }>(
-        `/series/${series._id}/progress/advance`
-      );
-      setMarked(true);
-      if (res.data.hasNext) {
-        navigate(`/${series.key}/lesson/${lesson.sortOrder + 1}`);
-      } else {
-        navigate(`/${series.key}`);
-      }
-    } catch (err) {
-      console.error('Advance error:', err);
-    } finally {
-      setAdvancing(false);
-    }
-  };
+  }, [seriesKey, sortOrder, user]);
 
   if (loading) return <div className="container"><div className="loading">Loading lesson...</div></div>;
   if (!lesson || !series) return <div className="container"><p>Lesson not found.</p><Link to="/" className="nav-link">← Home</Link></div>;
 
   const sortNum = lesson.sortOrder;
-  const isCurrentDay = progress !== null && sortNum === progress.currentDay;
-  const hasNextLesson = sortNum < totalLessons;
 
   return (
     <div className="container">
@@ -127,15 +94,6 @@ export default function LessonPage() {
       <header className="lesson-header">
         <span className="lesson-day-badge">Day {sortNum}</span>
         <h1>{lesson.title}</h1>
-        {user && (
-          <button
-            className={`btn-read ${marked ? 'read' : ''}`}
-            onClick={handleMarkRead}
-            disabled={marked}
-          >
-            {marked ? '✓ Read' : 'Mark as read'}
-          </button>
-        )}
       </header>
 
       <div className="toggle-container">
@@ -152,15 +110,7 @@ export default function LessonPage() {
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.parable}</ReactMarkdown>
         )}
         {tab === 'content' && lesson.content && (
-          <>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
-            {lesson.followUpQuestion && (
-              <div className="follow-up-question">
-                <h3>Tomorrow's Question</h3>
-                <p className="follow-up-text">{lesson.followUpQuestion}</p>
-              </div>
-            )}
-          </>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
         )}
       </article>
 
@@ -168,21 +118,10 @@ export default function LessonPage() {
         {sortNum > 1 ? (
           <Link to={`/${series.key}/lesson/${sortNum - 1}`} className="nav-link">← Day {sortNum - 1}</Link>
         ) : <span />}
-        <Link to={`/${series.key}/lesson/${sortNum + 1}`} className="nav-link">Day {sortNum + 1} →</Link>
+        {sortNum < totalLessons && (
+          <Link to={`/${series.key}/lesson/${sortNum + 1}`} className="nav-link">Day {sortNum + 1} →</Link>
+        )}
       </nav>
-
-      {user && progress && isCurrentDay && (
-        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-          <button
-            className="btn-subscribe"
-            onClick={handleAdvance}
-            disabled={advancing}
-            style={{ fontSize: '1rem', padding: '0.75rem 1.5rem' }}
-          >
-            {advancing ? 'Saving…' : hasNextLesson ? 'Mark as Read & Continue →' : 'Mark as Read & Finish'}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
