@@ -31,26 +31,6 @@ router.get('/', async (_req: Request, res: Response) => {
   res.json(seriesList);
 });
 
-// DEBUG: raw collection count
-router.get('/debug-count', async (_req: Request, res: Response) => {
-  const all = await Series.find({});
-  const withDeleted = await Series.find({ deletedAt: { $exists: true } });
-  const withoutDeleted = await Series.find({ deletedAt: { $exists: false } });
-  res.json({
-    total: all.length,
-    withDeletedAt: withDeleted.length,
-    withoutDeletedAt: withoutDeleted.length,
-    samples: all.map(s => ({ key: s.key, deletedAt: s.deletedAt, title: s.title })),
-  });
-});
-
-// DEBUG: undelete all series
-router.post('/undelete-all', async (_req: Request, res: Response) => {
-  const result = await Series.updateMany({}, { $unset: { deletedAt: 1 } });
-  const lessonResult = await Lesson.updateMany({}, { $unset: { deletedAt: 1 } });
-  res.json({ seriesUpdated: result.modifiedCount, lessonsUpdated: lessonResult.modifiedCount });
-});
-
 // GET /api/series/popular - top 20 by subscriberCount
 router.get('/popular', async (_req: Request, res: Response) => {
   const seriesList = await Series.find({ deletedAt: { $exists: false } })
