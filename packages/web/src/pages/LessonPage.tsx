@@ -23,7 +23,7 @@ import remarkGfm from 'remark-gfm';
 import api, { type APILesson, type APISeries, type APIProgress, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
-type Tab = 'parable' | 'content' | 'poem';
+type Tab = 'parable' | 'content';
 
 export default function LessonPage() {
   const { seriesKey, sortOrder } = useParams<{ seriesKey: string; sortOrder: string }>();
@@ -145,9 +145,6 @@ export default function LessonPage() {
         {lesson.content && (
           <button className={`toggle-btn ${tab === 'content' ? 'active' : ''}`} onClick={() => setTab('content')}>📖 Lesson</button>
         )}
-        {lesson.poem && (
-          <button className={`toggle-btn ${tab === 'poem' ? 'active' : ''}`} onClick={() => setTab('poem')}>📜 Poem</button>
-        )}
       </div>
 
       <article className={`lesson-content ${tab}`} key={tab}>
@@ -164,11 +161,6 @@ export default function LessonPage() {
               </div>
             )}
           </>
-        )}
-        {tab === 'poem' && lesson.poem && (
-          <div className="poem-content">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.poem}</ReactMarkdown>
-          </div>
         )}
       </article>
 
