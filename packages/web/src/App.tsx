@@ -36,6 +36,11 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
+    // Update mobile browser chrome color
+    const bg = theme === 'dark' ? '#111111' : '#faf8f5';
+    let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+    if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
+    meta.content = bg;
   }, [theme]);
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
