@@ -85,10 +85,11 @@ async function connectDB(): Promise<void> {
 async function start(): Promise<void> {
   await connectDB();
 
-  if (process.env.NODE_ENV !== 'test') {
-    startOrchestrateSeriesCron();
-    startOrchestrateProgressCron();
-  }
+  // Crons disabled — lesson generation triggered manually via admin UI
+  // if (process.env.NODE_ENV !== 'test') {
+  //   startOrchestrateSeriesCron();
+  //   startOrchestrateProgressCron();
+  // }
 
   app.listen(PORT, () => {
     console.log(`Parable API v2 running on port ${PORT}`);
