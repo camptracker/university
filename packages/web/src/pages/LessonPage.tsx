@@ -17,17 +17,9 @@ const API_BASE = (api.defaults.baseURL || '').replace(/\/api$/, '');
 
 type Tab = 'parable' | 'content';
 
-/** Renders streaming text with word-by-word fade-in */
+/** Renders streaming text as markdown (same fonts/styles as final lesson) */
 function StreamingText({ text }: { text: string }) {
-  const prevCountRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Split into word tokens (preserving whitespace)
-  const tokens = text.split(/(\s+)/);
-
-  useEffect(() => {
-    prevCountRef.current = tokens.length;
-  }, [tokens.length]);
 
   // Auto-scroll to bottom as content streams
   useEffect(() => {
@@ -36,16 +28,9 @@ function StreamingText({ text }: { text: string }) {
     }
   }, [text]);
 
-  const prevCount = prevCountRef.current;
-
   return (
-    <div className="lesson-content streaming-text" ref={containerRef}>
-      {tokens.map((token, i) => (
-        <span
-          key={i}
-          className={i >= prevCount ? 'stream-word-new' : ''}
-        >{token}</span>
-      ))}
+    <div ref={containerRef}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
     </div>
   );
 }
