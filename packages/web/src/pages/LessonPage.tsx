@@ -17,6 +17,39 @@ const API_BASE = (api.defaults.baseURL || '').replace(/\/api$/, '');
 
 type Tab = 'parable' | 'content';
 
+/** Renders streaming text with word-by-word fade-in */
+function StreamingText({ text }: { text: string }) {
+  const prevCountRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Split into word tokens (preserving whitespace)
+  const tokens = text.split(/(\s+)/);
+
+  useEffect(() => {
+    prevCountRef.current = tokens.length;
+  }, [tokens.length]);
+
+  // Auto-scroll to bottom as content streams
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [text]);
+
+  const prevCount = prevCountRef.current;
+
+  return (
+    <div className="lesson-content streaming-text" ref={containerRef}>
+      {tokens.map((token, i) => (
+        <span
+          key={i}
+          className={i >= prevCount ? 'stream-word-new' : ''}
+        >{token}</span>
+      ))}
+    </div>
+  );
+}
+
 export default function LessonPage() {
   const { seriesKey, sortOrder } = useParams<{ seriesKey: string; sortOrder: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -241,10 +274,10 @@ export default function LessonPage() {
 
         <article className="lesson-content">
           {tab === 'parable' && streamParable && (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamParable}</ReactMarkdown>
+            <StreamingText text={streamParable} />
           )}
           {tab === 'content' && streamStandard && (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamStandard}</ReactMarkdown>
+            <StreamingText text={streamStandard} />
           )}
           {tab === 'parable' && !streamParable && streamPhase !== 'error' && (
             <div style={{ padding: '2rem 0' }}>
