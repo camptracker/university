@@ -208,33 +208,25 @@ export default function SeriesPage() {
         </div>
       )}
 
-      <div className="lesson-list">
+      <div className="series-grid">
         {lessons.map(lesson => {
           const isLocked = subscribed && lesson.sortOrder > currentDay;
 
           if (isLocked) {
             return (
-              <div key={lesson._id} className="lesson-card" style={{ opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' }}>
-                {lesson.image && (
-                  <img src={lesson.image} alt={lesson.title} className="lesson-card-img" />
-                )}
-                <div className="lesson-card-text">
-                  <span className="lesson-day">Day {lesson.sortOrder}</span>
-                  <span className="lesson-title">{lesson.title} 🔒</span>
-                </div>
+              <div key={lesson._id} className="series-card" style={{ opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' }}>
+                <div className="series-card-emoji">{series.emoji || '📚'}</div>
+                <h2 className="series-card-name">Day {lesson.sortOrder}: {lesson.title} 🔒</h2>
+                <p className="series-card-theme">{lesson.content?.slice(0, 100)}…</p>
               </div>
             );
           }
 
           return (
-            <Link to={`/${series.key}/lesson/${lesson.sortOrder}`} key={lesson._id} className="lesson-card">
-              {lesson.image && (
-                <img src={lesson.image} alt={lesson.title} className="lesson-card-img" />
-              )}
-              <div className="lesson-card-text">
-                <span className="lesson-day">Day {lesson.sortOrder}</span>
-                <span className="lesson-title">{lesson.title}</span>
-              </div>
+            <Link to={`/${series.key}/lesson/${lesson.sortOrder}`} key={lesson._id} className="series-card">
+              <div className="series-card-emoji">{series.emoji || '📚'}</div>
+              <h2 className="series-card-name">Day {lesson.sortOrder}: {lesson.title}</h2>
+              <p className="series-card-theme">{lesson.content?.slice(0, 100)}…</p>
             </Link>
           );
         })}
@@ -242,10 +234,10 @@ export default function SeriesPage() {
           <p className="empty-state">{generating ? 'Generating first lesson…' : 'Lessons are being generated...'}</p>
         )}
         {generating && lessons.length > 0 && (
-          <div className="lesson-card" style={{ opacity: 0.5, cursor: 'default', justifyContent: 'center' }}>
-            <div className="lesson-card-text" style={{ textAlign: 'center' }}>
-              <span className="lesson-title">⏳ Generating next lesson…</span>
-            </div>
+          <div className="series-card" style={{ opacity: 0.5, cursor: 'default' }}>
+            <div className="series-card-emoji">⏳</div>
+            <h2 className="series-card-name">Generating next lesson…</h2>
+            <p className="series-card-theme">This usually takes a minute or two</p>
           </div>
         )}
       </div>
