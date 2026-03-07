@@ -90,7 +90,7 @@ export async function generateLesson(
         title: { type: 'string', description: 'Lesson title' },
         content: {
           type: 'string',
-          description: 'Markdown lesson content. Must include: answer to the question, key concept definitions, why it matters, how it works, and a relevant wisdom quote with attribution. Keep it short and easy to read — no walls of text.',
+          description: 'Markdown lesson content. Explain like I am 5 years old — use simple words, short sentences, and relatable everyday analogies. Must include: answer to the question, key concepts, why it matters, how it works, and a wisdom quote with attribution. Be brief — aim for 150-250 words total.',
         },
         followUpQuestion: {
           type: 'string',
@@ -110,14 +110,15 @@ Description: ${seriesContext.description}
 ${isFirst ? 'Opening question (series anchor)' : 'Question to answer in this lesson'}: "${question}"
 ${prevSection}
 Write a markdown lesson that:
+- Explains like I'm 5 years old — simple words, short sentences, everyday analogies
 - Directly answers the question above
-- Defines key concepts clearly and concisely
-- Explains why it matters
-- Explains how it works
-- Includes a relevant wisdom quote with its source/attribution
-- Keeps everything short and easy to read (no walls of text, use headers and short paragraphs)
+- Defines key concepts in plain language (no jargon)
+- Explains why it matters and how it works using relatable examples
+- Includes a relevant wisdom quote with its source
+- Aim for 150-250 words total — be punchy, not wordy
+- Use short headers and 1-2 sentence paragraphs max
 
-The followUpQuestion should use the Socratic method — arise naturally from the content and provoke deeper thinking.`,
+The followUpQuestion should be a simple, curious question that a child might ask after hearing this — Socratic but accessible.`,
   }]);
 }
 
@@ -168,7 +169,7 @@ Content: ${lesson.content}
 
 ${charsDesc}
 
-Write a compelling narrative story (2-4 paragraphs in markdown) that illustrates the concept through the characters' experiences. Include or introduce characters as needed.`,
+Write a short, vivid story (2-3 paragraphs in markdown) that shows the concept in action through the characters. Keep the language simple and the story easy to follow — like a fable or bedtime story. Include or introduce characters as needed.`,
   }]);
 }
 
