@@ -275,6 +275,8 @@ router.post('/:seriesId/generate', requireAdmin, async (req: Request, res: Respo
 // GET /api/series/:seriesId/generation-status
 router.get('/:seriesId/generation-status', async (req: Request, res: Response) => {
   const { seriesId } = req.params;
+  // Auto-clean stale jobs older than 10 minutes
+  await GenerationJob.deleteMany({ seriesId, createdAt: { $lt: new Date(Date.now() - 10 * 60 * 1000) } });
   const job = await GenerationJob.findOne({ seriesId });
   res.json({ generating: !!job });
 });
