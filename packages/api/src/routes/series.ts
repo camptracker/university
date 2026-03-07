@@ -279,6 +279,13 @@ router.get('/:seriesId/generation-status', async (req: Request, res: Response) =
   res.json({ generating: !!job });
 });
 
+// DELETE /api/series/:seriesId/generation - clear stuck generation job (admin)
+router.delete('/:seriesId/generation', requireAdmin, async (req: Request, res: Response) => {
+  const { seriesId } = req.params;
+  await GenerationJob.deleteMany({ seriesId });
+  res.json({ ok: true });
+});
+
 // DELETE /api/series/:seriesId - soft delete + cleanup (admin)
 router.delete('/:seriesId', requireAdmin, async (req: Request, res: Response) => {
   const { seriesId } = req.params;
