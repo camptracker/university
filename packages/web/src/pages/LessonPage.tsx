@@ -1,79 +1,211 @@
 /**
  * Lesson page — URL: /:seriesKey/lesson/:sortOrder
  *
- * Displays a single lesson with three content tabs: Parable, Content, Poem.
- *
- * Data loaded:
- * - GET /api/series → find series by key
- * - GET /api/series/:id/lessons → get lesson list to find lessonId by sortOrder
- * - GET /api/lessons/:lessonId → full lesson
- *
- * Key behaviors:
- * - "Mark as Read & Continue" button (shown when isCurrentDay):
- *   PATCH /api/series/:id/progress/advance → advances progress and navigates to next lesson
- * - "Mark as read" button (standalone): POST /api/lessons/:id/read
- * - Bottom nav provides prev/next day links (no boundary check)
- * - Scrolls to top on lesson/series change
- * - Content tab renders lesson.content as markdown
+ * Two modes:
+ * 1. Normal: loads existing lesson from API
+ * 2. Streaming: if ?stream=true, opens SSE to generate-stream endpoint and
+ *    renders content in real-time as it arrives. When done, loads saved lesson.
  */
-import { useParams, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import api, { type APILesson, type APISeries, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
+const API_BASE = (api.defaults.baseURL || '').replace(/\/api$/, '');
+
 type Tab = 'parable' | 'content';
 
 export default function LessonPage() {
   const { seriesKey, sortOrder } = useParams<{ seriesKey: string; sortOrder: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [series, setSeries] = useState<APISeries | null>(null);
   const [lesson, setLesson] = useState<APILesson | null>(null);
   const [totalLessons, setTotalLessons] = useState(0);
-  const [tab, setTab] = useState<Tab>('parable');
+  const [tab, setTab] = useState<Tab>('content');
   const [loading, setLoading] = useState(true);
+
+  // Streaming state
+  const isStreaming = searchParams.get('stream') === 'true';
+  const [streamPhase, setStreamPhase] = useState<string>('');
+  const [streamStandard, setStreamStandard] = useState('');
+  const [streamParable, setStreamParable] = useState('');
+  const [streamImage, setStreamImage] = useState<string | null>(null);
+  const [streamDone, setStreamDone] = useState(false);
+  const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => { window.scrollTo(0, 0); }, [seriesKey, sortOrder]);
 
+  // Load series info (needed for both modes)
   useEffect(() => {
-    if (!seriesKey || !sortOrder) return;
-    setLoading(true);
+    if (!seriesKey) return;
+    api.get<APISeries[]>('/series')
+      .then(r => {
+        const found = r.data.find(s => s.key === seriesKey);
+        if (found) setSeries(found);
+      })
+      .catch(console.error);
+  }, [seriesKey]);
 
-    let foundSeries: APISeries | null = null;
+  // Normal mode: load existing lesson
+  useEffect(() => {
+    if (!seriesKey || !sortOrder || isStreaming) return;
+    setLoading(true);
 
     api.get<APISeries[]>('/series')
       .then(r => {
         const found = r.data.find(s => s.key === seriesKey);
         if (!found) return;
-        foundSeries = found;
         setSeries(found);
         return api.get<APILessonsResponse>(`/series/${found._id}/lessons?page=1`);
       })
       .then(r => {
-        if (!r || !foundSeries) return;
+        if (!r) return;
         setTotalLessons(r.data.total);
-        const all = r.data.lessons;
-        const found = all.find(l => l.sortOrder === Number(sortOrder));
+        const found = r.data.lessons.find(l => l.sortOrder === Number(sortOrder));
         if (!found) return;
         return api.get<APILesson>(`/lessons/${found._id}`);
       })
       .then(r => {
         if (!r) return;
         setLesson(r.data);
-        // Auto mark as read
-        if (user) {
-          api.post(`/lessons/${r.data._id}/read`).catch(() => {});
-        }
+        if (user) api.post(`/lessons/${r.data._id}/read`).catch(() => {});
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [seriesKey, sortOrder, user]);
+  }, [seriesKey, sortOrder, user, isStreaming]);
 
+  // Streaming mode: open SSE
+  useEffect(() => {
+    if (!isStreaming || !series) return;
+    setLoading(false);
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    const es = new EventSource(`${API_BASE}/api/series/${series._id}/generate-stream?token=${token}`);
+    esRef.current = es;
+
+    es.addEventListener('phase', (e) => {
+      const { phase } = JSON.parse(e.data);
+      setStreamPhase(phase);
+      if (phase === 'parable') setTab('parable');
+    });
+
+    es.addEventListener('delta', (e) => {
+      const { section, text } = JSON.parse(e.data);
+      if (section === 'standard') setStreamStandard(prev => prev + text);
+      if (section === 'parable') setStreamParable(prev => prev + text);
+    });
+
+    es.addEventListener('done', (e) => {
+      const { image } = JSON.parse(e.data);
+      if (image) setStreamImage(image);
+      setStreamDone(true);
+      es.close();
+      esRef.current = null;
+
+      // Remove ?stream param and load the real lesson
+      setSearchParams({}, { replace: true });
+
+      // Reload lesson from DB
+      api.get<APILessonsResponse>(`/series/${series._id}/lessons?page=1`)
+        .then(r => {
+          setTotalLessons(r.data.total);
+          const found = r.data.lessons.find(l => l.sortOrder === Number(sortOrder));
+          if (!found) return;
+          return api.get<APILesson>(`/lessons/${found._id}`);
+        })
+        .then(r => {
+          if (!r) return;
+          setLesson(r.data);
+          if (user) api.post(`/lessons/${r.data._id}/read`).catch(() => {});
+        })
+        .catch(console.error);
+    });
+
+    es.addEventListener('error', () => {
+      es.close();
+      esRef.current = null;
+      setStreamPhase('error');
+    });
+
+    return () => { es.close(); };
+  }, [isStreaming, series]);
+
+  const sortNum = Number(sortOrder);
+
+  // Streaming mode render
+  if (isStreaming || (streamStandard && !lesson)) {
+    const phaseLabel: Record<string, string> = {
+      standard: '✍️ Generating lesson...',
+      parable: '📖 Writing parable...',
+      meta: '🎵 Creating sonnet & metadata...',
+      image: '🎨 Generating image...',
+      error: '❌ Generation failed',
+    };
+
+    return (
+      <div className="container">
+        <nav className="breadcrumb">
+          <Link to="/" className="nav-link">Home</Link>
+          <span className="breadcrumb-sep">›</span>
+          {series && <Link to={`/${series.key}`} className="nav-link">{series.title}</Link>}
+          <span className="breadcrumb-sep">›</span>
+          <span>Day {sortNum}</span>
+        </nav>
+
+        {streamImage && (
+          <div className="lesson-hero">
+            <img src={streamImage} alt="Lesson" />
+          </div>
+        )}
+
+        <header className="lesson-header">
+          <span className="lesson-day-badge">Day {sortNum}</span>
+          {!streamDone && (
+            <p style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 600 }}>
+              {phaseLabel[streamPhase] || 'Starting...'}
+            </p>
+          )}
+        </header>
+
+        <div className="toggle-container">
+          <button
+            className={`toggle-btn ${tab === 'content' ? 'active' : ''}`}
+            onClick={() => setTab('content')}
+            disabled={!streamStandard}
+          >📖 Lesson</button>
+          <button
+            className={`toggle-btn ${tab === 'parable' ? 'active' : ''}`}
+            onClick={() => setTab('parable')}
+            disabled={!streamParable}
+          >🏰 Parable</button>
+        </div>
+
+        <article className="lesson-content">
+          {tab === 'content' && streamStandard && (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamStandard}</ReactMarkdown>
+          )}
+          {tab === 'parable' && streamParable && (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamParable}</ReactMarkdown>
+          )}
+          {!streamStandard && !streamParable && streamPhase !== 'error' && (
+            <div style={{ padding: '2rem 0' }}>
+              <div className="skeleton-line skeleton-long" />
+              <div className="skeleton-line skeleton-short" style={{ marginTop: '0.5rem' }} />
+            </div>
+          )}
+        </article>
+      </div>
+    );
+  }
+
+  // Normal mode render
   if (loading) return <div className="container"><div className="loading">Loading lesson...</div></div>;
   if (!lesson || !series) return <div className="container"><p>Lesson not found.</p><Link to="/" className="nav-link">← Home</Link></div>;
-
-  const sortNum = lesson.sortOrder;
 
   return (
     <div className="container">

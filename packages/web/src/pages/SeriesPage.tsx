@@ -16,14 +16,10 @@
  * - Subscribe/unsubscribe updates subscriberCount optimistically
  * - Redirects to / if series not found
  */
-import { Link, useParams, Navigate } from 'react-router-dom';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Link, useParams, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import api, { type APISeries, type APILesson, type APIProgress, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
-
-const API_BASE = (api.defaults.baseURL || '').replace(/\/api$/, '');
 
 export default function SeriesPage() {
   const { seriesKey } = useParams<{ seriesKey: string }>();
@@ -38,11 +34,9 @@ export default function SeriesPage() {
   const [loading, setLoading] = useState(true);
   const [subLoading, setSubLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const [streamingContent, setStreamingContent] = useState<{ standard: string; parable: string; phase: string } | null>(null);
-  const [streamTab, setStreamTab] = useState<'standard' | 'parable'>('standard');
+  const navigate = useNavigate();
   const generatingRef = useRef(false);
   const seriesIdRef = useRef<string | null>(null);
-  const esRef = useRef<EventSource | null>(null);
 
   const fetchLessons = (seriesId: string) => {
     return api.get<APILessonsResponse>(`/series/${seriesId}/lessons`)
@@ -91,11 +85,6 @@ export default function SeriesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seriesKey, user]);
 
-  // Cleanup SSE on unmount
-  useEffect(() => {
-    return () => { esRef.current?.close(); };
-  }, []);
-
   const handleSubscribe = async () => {
     if (!series || !user) return;
     setSubLoading(true);
@@ -119,51 +108,12 @@ export default function SeriesPage() {
     }
   };
 
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = () => {
     if (!series || generating) return;
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
-    setGenerating(true);
-    generatingRef.current = true;
-    setStreamingContent({ standard: '', parable: '', phase: 'standard' });
-    setStreamTab('standard');
-
-    const es = new EventSource(`${API_BASE}/api/series/${series._id}/generate-stream?token=${token}`);
-    esRef.current = es;
-
-    es.addEventListener('phase', (e) => {
-      const { phase } = JSON.parse(e.data);
-      setStreamingContent(prev => prev ? { ...prev, phase } : prev);
-      if (phase === 'parable') setStreamTab('parable');
-    });
-
-    es.addEventListener('delta', (e) => {
-      const { section, text } = JSON.parse(e.data);
-      setStreamingContent(prev => {
-        if (!prev) return prev;
-        return { ...prev, [section]: prev[section as 'standard' | 'parable'] + text };
-      });
-    });
-
-    es.addEventListener('done', (_e) => {
-      es.close();
-      esRef.current = null;
-      setGenerating(false);
-      generatingRef.current = false;
-      setStreamingContent(null);
-      if (series) fetchLessons(series._id);
-    });
-
-    es.addEventListener('error', (e) => {
-      console.error('SSE error:', e);
-      es.close();
-      esRef.current = null;
-      setGenerating(false);
-      generatingRef.current = false;
-      setStreamingContent(null);
-    });
-  }, [series, generating]);
+    // Navigate to lesson page with stream param — it handles the SSE
+    const nextDay = (lessons.length > 0 ? Math.max(...lessons.map(l => l.sortOrder)) : 0) + 1;
+    navigate(`/${series.key}/lesson/${nextDay}?stream=true`);
+  };
 
   if (notFound) return <Navigate to="/" replace />;
   if (loading) return <div className="container"><div className="loading">Loading...</div></div>;
@@ -215,42 +165,6 @@ export default function SeriesPage() {
           <p className="empty-state">{generating ? 'Generating first lesson…' : 'Lessons are being generated...'}</p>
         )}
       </div>
-
-      {streamingContent && (
-        <div className="streaming-preview" style={{ marginTop: '1.5rem', border: '1px solid var(--border)', borderRadius: '12px', padding: '1.25rem', background: 'var(--surface)' }}>
-          <div style={{ marginBottom: '0.75rem', color: 'var(--gold)', fontWeight: 600, fontSize: '0.85rem' }}>
-            {streamingContent.phase === 'standard' && '✍️ Generating lesson...'}
-            {streamingContent.phase === 'parable' && '📖 Writing parable...'}
-            {streamingContent.phase === 'meta' && '🎵 Creating sonnet & metadata...'}
-            {streamingContent.phase === 'image' && '🎨 Generating image...'}
-          </div>
-
-          <div className="toggle-container" style={{ marginBottom: '0.75rem' }}>
-            <button
-              className={`toggle-btn ${streamTab === 'standard' ? 'active' : ''}`}
-              onClick={() => setStreamTab('standard')}
-              disabled={!streamingContent.standard}
-            >📖 Lesson</button>
-            <button
-              className={`toggle-btn ${streamTab === 'parable' ? 'active' : ''}`}
-              onClick={() => setStreamTab('parable')}
-              disabled={!streamingContent.parable}
-            >🏰 Parable</button>
-          </div>
-
-          <article className="lesson-content">
-            {streamTab === 'standard' && streamingContent.standard && (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingContent.standard}</ReactMarkdown>
-            )}
-            {streamTab === 'parable' && streamingContent.parable && (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingContent.parable}</ReactMarkdown>
-            )}
-            {!streamingContent.standard && !streamingContent.parable && (
-              <div className="skeleton-line skeleton-long" style={{ marginTop: '0.5rem' }} />
-            )}
-          </article>
-        </div>
-      )}
 
       {user?.role === 'admin' && !generating && (
         <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
