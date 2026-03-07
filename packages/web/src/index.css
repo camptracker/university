@@ -188,7 +188,7 @@ body {
   margin: 0 -1.5rem 2rem;
   overflow: hidden;
 }
-.lesson-hero img { width: 100%; aspect-ratio: 1 / 1; display: block; object-fit: cover; }
+.lesson-hero img { width: 100%; height: auto; display: block; }
 
 /* Lesson page */
 .top-nav { margin-bottom: 1.5rem; padding-top: 1rem; }
@@ -454,8 +454,8 @@ body {
 /* Lesson header row */
 .lesson-header { display: flex; flex-direction: column; gap: 0.4rem; margin: 1.5rem 0 1.5rem; }
 
-/* Lesson hero — square image */
-.lesson-hero img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 10px; margin-bottom: 1.5rem; }
+/* Lesson hero */
+.lesson-hero img { width: 100%; height: auto; border-radius: 10px; margin-bottom: 1.5rem; }
 
 /* Tables (GFM) */
 .lesson-content table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.95rem; }
