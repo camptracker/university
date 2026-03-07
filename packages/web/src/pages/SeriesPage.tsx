@@ -161,7 +161,7 @@ export default function SeriesPage() {
         <span>{series.title}</span>
       </nav>
 
-      <header className="home-header">
+      <header className="home-header" style={{ textAlign: 'left' }}>
         <div className="series-title-row">
           {series.emoji && <span className="series-hero-emoji">{series.emoji}</span>}
           <h1>{series.title}</h1>
@@ -208,25 +208,33 @@ export default function SeriesPage() {
         </div>
       )}
 
-      <div className="series-grid">
+      <div className="lesson-list">
         {lessons.map(lesson => {
           const isLocked = subscribed && lesson.sortOrder > currentDay;
 
           if (isLocked) {
             return (
-              <div key={lesson._id} className="series-card" style={{ opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' }}>
-                <div className="series-card-emoji">{series.emoji || '📚'}</div>
-                <h2 className="series-card-name">Day {lesson.sortOrder}: {lesson.title} 🔒</h2>
-                <p className="series-card-theme">{lesson.content?.slice(0, 100)}…</p>
+              <div key={lesson._id} className="lesson-card" style={{ opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' }}>
+                {lesson.image && (
+                  <img src={lesson.image} alt={lesson.title} className="lesson-card-img" />
+                )}
+                <div className="lesson-card-text">
+                  <span className="lesson-day">Day {lesson.sortOrder}</span>
+                  <span className="lesson-title">{lesson.title} 🔒</span>
+                </div>
               </div>
             );
           }
 
           return (
-            <Link to={`/${series.key}/lesson/${lesson.sortOrder}`} key={lesson._id} className="series-card">
-              <div className="series-card-emoji">{series.emoji || '📚'}</div>
-              <h2 className="series-card-name">Day {lesson.sortOrder}: {lesson.title}</h2>
-              <p className="series-card-theme">{lesson.content?.slice(0, 100)}…</p>
+            <Link to={`/${series.key}/lesson/${lesson.sortOrder}`} key={lesson._id} className="lesson-card">
+              {lesson.image && (
+                <img src={lesson.image} alt={lesson.title} className="lesson-card-img" />
+              )}
+              <div className="lesson-card-text">
+                <span className="lesson-day">Day {lesson.sortOrder}</span>
+                <span className="lesson-title">{lesson.title}</span>
+              </div>
             </Link>
           );
         })}
@@ -234,10 +242,10 @@ export default function SeriesPage() {
           <p className="empty-state">{generating ? 'Generating first lesson…' : 'Lessons are being generated...'}</p>
         )}
         {generating && lessons.length > 0 && (
-          <div className="series-card" style={{ opacity: 0.5, cursor: 'default' }}>
-            <div className="series-card-emoji">⏳</div>
-            <h2 className="series-card-name">Generating next lesson…</h2>
-            <p className="series-card-theme">This usually takes a minute or two</p>
+          <div className="lesson-card" style={{ opacity: 0.5, cursor: 'default', justifyContent: 'center' }}>
+            <div className="lesson-card-text" style={{ textAlign: 'center' }}>
+              <span className="lesson-title">⏳ Generating next lesson…</span>
+            </div>
           </div>
         )}
       </div>
