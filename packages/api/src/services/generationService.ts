@@ -83,7 +83,6 @@ export async function createFirstLessonForSeries(series: ISeries): Promise<void>
   const result = await generateFullLesson({
     seriesName: series.title,
     seriesTheme: series.theme,
-    seriesEmoji: series.emoji || '📚',
     parableCharacters: formatCharacters(series.characters || []),
     newDay: 1,
     tomorrowQuestion: undefined,
@@ -142,7 +141,6 @@ export async function createLessonForSeries(seriesId: string): Promise<void> {
     const result = await generateFullLesson({
       seriesName: series.title,
       seriesTheme: series.theme,
-      seriesEmoji: series.emoji || '📚',
       parableCharacters: formatCharacters(series.characters || []),
       newDay: nextSortOrder,
       tomorrowQuestion: prevFollowUpQuestion || undefined,
@@ -206,7 +204,6 @@ export async function createSeriesWithFirstLesson(topic: string, userId: string)
     key: details.key,
     description: details.description,
     anchor: details.anchor,
-    emoji: details.emoji,
     theme: details.theme,
     characters: [],
     subscriberCount: 1,

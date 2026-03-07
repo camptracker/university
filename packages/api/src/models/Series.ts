@@ -6,7 +6,6 @@
  * - key: String (required, unique) — URL slug, e.g. 'stoic-philosophy'
  * - description: String (required) — short summary
  * - anchor: String (required) — Socratic starter question that kicks off the learning journey
- * - emoji: String? — single UI emoji
  * - theme: String (required) — overarching theme of the series
  * - characters: ICharacter[] — recurring narrative characters, merged across lessons
  * - subscriberCount: Number (default 0) — denormalized; incremented/decremented on subscribe
@@ -31,7 +30,6 @@ export interface ISeries extends Document {
   key: string;
   description: string;
   anchor: string;
-  emoji?: string;
   theme: string;
   characters: ICharacter[];
   subscriberCount: number;
@@ -53,7 +51,6 @@ const SeriesSchema = new Schema<ISeries>({
   key: { type: String, required: true, unique: true },
   description: { type: String, required: true },
   anchor: { type: String, required: true },
-  emoji: String,
   theme: { type: String, required: true },
   characters: [CharacterSchema],
   subscriberCount: { type: Number, default: 0 },

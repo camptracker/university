@@ -89,7 +89,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               className={`sidebar-item ${currentKey === s.key ? 'active' : ''}`}
               onClick={onClose}
             >
-              <span className="sidebar-item-name">{s.emoji ? `${s.emoji} ` : ''}{s.title}</span>
+              <span className="sidebar-item-name">{s.title}</span>
               <span className="sidebar-item-count">{s.subscriberCount}</span>
             </Link>
           ))}

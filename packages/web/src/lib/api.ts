@@ -82,7 +82,6 @@ export interface APISeries {
   key: string;
   description: string;
   anchor: string;
-  emoji?: string;
   theme: string;
   characters: Character[];
   subscriberCount: number;

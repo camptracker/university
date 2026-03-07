@@ -43,7 +43,6 @@ export default function Home() {
         <div className="series-grid">
           {seriesList.map(s => (
             <Link to={`/${s.key}`} key={s._id} className="series-card">
-              <div className="series-card-emoji">{s.emoji || '📚'}</div>
               <h2 className="series-card-name">{s.title}</h2>
               <p className="series-card-theme">{s.description}</p>
               <div className="series-card-meta">
@@ -53,8 +52,7 @@ export default function Home() {
           ))}
           {user && (
             <Link to="/new" className="series-card series-card-new">
-              <div className="series-card-emoji">✨</div>
-              <h2 className="series-card-name">Create New Series</h2>
+              <h2 className="series-card-name">✨ Create New Series</h2>
               <p className="series-card-theme">Generate a new AI-powered learning series on any topic</p>
             </Link>
           )}

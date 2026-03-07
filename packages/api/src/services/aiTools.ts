@@ -37,7 +37,6 @@ export interface SeriesDetails {
   key: string;
   description: string;
   anchor: string;
-  emoji: string;
   theme: string;
 }
 
@@ -52,10 +51,9 @@ export async function createSeriesDetails(topic: string): Promise<SeriesDetails>
         key: { type: 'string', description: 'URL-safe unique slug (kebab-case, max 40 chars)' },
         description: { type: 'string', description: 'Short description (1-2 sentences)' },
         anchor: { type: 'string', description: 'A Socratic starter question (why/what/how) that kicks off the learning journey for this theme' },
-        emoji: { type: 'string', description: 'Single representative emoji' },
         theme: { type: 'string', description: 'The overarching theme of this series (e.g. "Building wealth through patience and discipline")' },
       },
-      required: ['title', 'key', 'description', 'anchor', 'emoji', 'theme'],
+      required: ['title', 'key', 'description', 'anchor', 'theme'],
     },
   }, [{ role: 'user', content: `Create series metadata for a University series about: ${topic}` }]);
 }
@@ -75,7 +73,6 @@ export interface FullLessonOutput {
 export interface GenerateFullLessonOpts {
   seriesName: string;
   seriesTheme: string;
-  seriesEmoji: string;
   parableCharacters: string; // e.g. "Kael (village boy), Sable (elder)"
   newDay: number;
   tomorrowQuestion?: string; // previous lesson's followUpQuestion (null for day 1)
@@ -85,7 +82,7 @@ export interface GenerateFullLessonOpts {
 
 export async function generateFullLesson(opts: GenerateFullLessonOpts): Promise<FullLessonOutput> {
   const {
-    seriesName, seriesTheme, seriesEmoji, parableCharacters,
+    seriesName, seriesTheme, parableCharacters,
     newDay, tomorrowQuestion, prevLessons, existingCharacters,
   } = opts;
 
@@ -98,7 +95,6 @@ export async function generateFullLesson(opts: GenerateFullLessonOpts): Promise<
 
   const systemPrompt = `You are a lesson generator for the "${seriesName}" series.
 Theme: ${seriesTheme}
-Emoji: ${seriesEmoji}
 Parable Characters: ${parableCharacters}
 ${historyBlock}
 
@@ -106,7 +102,7 @@ Generate a lesson in JSON format with these exact keys: standard, parable, sonne
 
 The "standard" must follow this format exactly:
 
-${seriesEmoji} Day ${newDay}: [Title]
+Day ${newDay}: [Title]
 
 ${tomorrowQuestion ? `[IMPORTANT: The previous lesson ended with this question: "${tomorrowQuestion}" — You MUST open the lesson by directly answering this question in 2-3 sentences before moving on. This creates continuity between lessons.]` : `[Brief intro to the topic if Day 1]`}
 

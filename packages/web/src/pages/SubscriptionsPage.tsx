@@ -46,7 +46,6 @@ export default function SubscriptionsPage() {
         <div className="series-grid">
           {subs.map(sub => (
             <Link to={`/${sub.seriesId.key}`} key={sub._id} className="series-card">
-              <div className="series-card-emoji">{sub.seriesId.emoji || '📚'}</div>
               <h2 className="series-card-name">{sub.seriesId.title}</h2>
               <p className="series-card-theme">{sub.seriesId.description}</p>
               <div className="series-card-meta">
@@ -55,8 +54,7 @@ export default function SubscriptionsPage() {
             </Link>
           ))}
           <Link to="/new" className="series-card series-card-new">
-            <div className="series-card-emoji">✨</div>
-            <h2 className="series-card-name">Create New Series</h2>
+            <h2 className="series-card-name">✨ Create New Series</h2>
             <p className="series-card-theme">Generate a new AI-powered learning series</p>
           </Link>
         </div>

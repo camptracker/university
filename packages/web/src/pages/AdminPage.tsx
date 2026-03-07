@@ -119,7 +119,7 @@ export default function AdminPage() {
             <tbody>
               {seriesList.map(s => (
                 <tr key={s._id}>
-                  <td>{s.emoji} {s.title}</td>
+                  <td>{s.title}</td>
                   <td><code>{s.key}</code></td>
                   <td>{s.subscriberCount}</td>
                   <td>

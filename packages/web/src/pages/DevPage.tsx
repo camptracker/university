@@ -83,7 +83,6 @@ const GROUPS: EndpointGroup[] = [
           { name: 'key', placeholder: 'key (url slug)' },
           { name: 'description', placeholder: 'Description' },
           { name: 'anchor', placeholder: 'Anchor' },
-          { name: 'emoji', placeholder: 'Emoji (optional)' },
           { name: 'theme', placeholder: 'theme (required)' },
         ],
       },
