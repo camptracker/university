@@ -18,21 +18,22 @@ const API_BASE = (api.defaults.baseURL || '').replace(/\/api$/, '');
 type Tab = 'parable' | 'content';
 
 /**
- * Renders streaming markdown with smooth word-by-word fade-in.
- * Splits text into already-seen words (opaque) and new words (animate in).
- * Renders two layers: markdown for structure, word spans for animation.
+ * Renders streaming markdown with word-by-word fade-in.
+ * Uses custom ReactMarkdown components to split text nodes into
+ * individual <span>s. Words beyond the previous count get a fade animation.
  */
 function StreamingText({ text }: { text: string }) {
+  const wordIndexRef = useRef({ current: 0 }); // mutable counter per render
   const prevWordCountRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Split preserving whitespace tokens
-  const tokens = text.split(/(\s+)/);
+  // Count total words in current text
+  const totalWords = text.split(/\s+/).filter(Boolean).length;
   const prevCount = prevWordCountRef.current;
 
   useEffect(() => {
-    prevWordCountRef.current = tokens.length;
-  }, [tokens.length]);
+    prevWordCountRef.current = totalWords;
+  }, [totalWords]);
 
   // Auto-scroll as content streams
   useEffect(() => {
@@ -41,9 +42,52 @@ function StreamingText({ text }: { text: string }) {
     }
   }, [text]);
 
+  // Reset word counter before each render
+  wordIndexRef.current = { current: 0 };
+
+  // Custom component that splits children text into word spans
+  const makeWordSpans = (children: React.ReactNode): React.ReactNode => {
+    const counter = wordIndexRef.current;
+    return Array.isArray(children)
+      ? children.map((child, i) => <span key={i}>{processChild(child, counter)}</span>)
+      : processChild(children, counter);
+  };
+
+  function processChild(child: React.ReactNode, counter: { current: number }): React.ReactNode {
+    if (typeof child === 'string') {
+      return child.split(/(\s+)/).map((token, i) => {
+        if (/^\s+$/.test(token)) return token;
+        const idx = counter.current++;
+        const isNew = idx >= prevCount;
+        return (
+          <span
+            key={i}
+            className={isNew ? 'stream-word' : undefined}
+            style={isNew ? { animationDelay: `${(idx - prevCount) * 30}ms` } as React.CSSProperties : undefined}
+          >{token}</span>
+        );
+      });
+    }
+    return child;
+  }
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const components: Record<string, React.FC<any>> = {
+    p: ({ children, ...props }: any) => <p {...props}>{makeWordSpans(children)}</p>,
+    li: ({ children, ...props }: any) => <li {...props}>{makeWordSpans(children)}</li>,
+    h1: ({ children, ...props }: any) => <h1 {...props}>{makeWordSpans(children)}</h1>,
+    h2: ({ children, ...props }: any) => <h2 {...props}>{makeWordSpans(children)}</h2>,
+    h3: ({ children, ...props }: any) => <h3 {...props}>{makeWordSpans(children)}</h3>,
+    h4: ({ children, ...props }: any) => <h4 {...props}>{makeWordSpans(children)}</h4>,
+    em: ({ children, ...props }: any) => <em {...props}>{makeWordSpans(children)}</em>,
+    strong: ({ children, ...props }: any) => <strong {...props}>{makeWordSpans(children)}</strong>,
+    blockquote: ({ children, ...props }: any) => <blockquote {...props}>{children}</blockquote>,
+  };
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
   return (
     <div ref={containerRef} className="streaming-markdown">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{text}</ReactMarkdown>
     </div>
   );
 }
