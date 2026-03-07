@@ -40,7 +40,7 @@ export default function StreamingText({ text, className }: Props) {
   }, [visibleText]);
 
   return (
-    <div ref={containerRef} className={`streaming lesson-content ${className || ''}`}>
+    <div ref={containerRef} className={`lesson-content ${className || ''}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{visibleText}</ReactMarkdown>
     </div>
   );
