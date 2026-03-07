@@ -21,7 +21,7 @@ type Tab = 'parable' | 'content';
  * Buffers incoming text and reveals one word every 200ms for a smooth effect.
  * Full markdown styling is preserved via ReactMarkdown.
  */
-function StreamingText({ text }: { text: string }) {
+function StreamingText({ text, className }: { text: string; className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [visibleText, setVisibleText] = useState('');
   const bufferRef = useRef('');       // full text received so far
@@ -42,7 +42,7 @@ function StreamingText({ text }: { text: string }) {
         revealedRef.current = revealed + 1;
         setVisibleText(allWords.slice(0, revealed + 1).join(''));
       }
-    }, 200);
+    }, 60);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
@@ -54,7 +54,7 @@ function StreamingText({ text }: { text: string }) {
   }, [visibleText]);
 
   return (
-    <div ref={containerRef} className="streaming-markdown">
+    <div ref={containerRef} className={`lesson-content ${className || ''}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{visibleText}</ReactMarkdown>
     </div>
   );
@@ -283,12 +283,12 @@ export default function LessonPage() {
           >📖 Lesson</button>
         </div>
 
-        <article className="lesson-content">
+        <article>
           {tab === 'parable' && streamParable && (
-            <StreamingText text={streamParable} />
+            <StreamingText text={streamParable} className="parable" />
           )}
           {tab === 'content' && streamStandard && (
-            <StreamingText text={streamStandard} />
+            <StreamingText text={streamStandard} className="content" />
           )}
           {tab === 'parable' && !streamParable && streamPhase !== 'error' && (
             <div style={{ padding: '2rem 0' }}>
