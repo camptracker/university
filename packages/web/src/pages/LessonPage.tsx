@@ -19,6 +19,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import api, { type APILesson, type APISeries, type APIProgress, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
@@ -151,14 +152,22 @@ export default function LessonPage() {
 
       <article className={`lesson-content ${tab}`} key={tab}>
         {tab === 'parable' && lesson.parable && (
-          <ReactMarkdown>{lesson.parable}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.parable}</ReactMarkdown>
         )}
         {tab === 'content' && lesson.content && (
-          <ReactMarkdown>{lesson.content}</ReactMarkdown>
+          <>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
+            {lesson.followUpQuestion && (
+              <div className="follow-up-question">
+                <h3>Tomorrow's Question</h3>
+                <p className="follow-up-text">{lesson.followUpQuestion}</p>
+              </div>
+            )}
+          </>
         )}
         {tab === 'poem' && lesson.poem && (
           <div className="poem-content">
-            <ReactMarkdown>{lesson.poem}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.poem}</ReactMarkdown>
           </div>
         )}
       </article>

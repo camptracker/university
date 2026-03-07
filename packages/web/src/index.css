@@ -224,8 +224,8 @@ body {
 /* Content */
 .lesson-content { animation: fadeIn 0.3s ease; }
 .lesson-content.parable { font-family: var(--serif); font-size: 1.15rem; }
-.lesson-content.standard { font-family: var(--sans); font-size: 1rem; }
-.lesson-content.sonnet { font-family: var(--serif); font-size: 1.2rem; text-align: center; font-style: italic; line-height: 2; }
+.lesson-content.content { font-family: var(--sans); font-size: 1rem; }
+.lesson-content.poem { font-family: var(--serif); font-size: 1.2rem; text-align: center; font-style: italic; line-height: 2; }
 
 .lesson-content h1, .lesson-content h2, .lesson-content h3 { color: var(--gold); margin: 1.5rem 0 0.5rem; }
 .lesson-content p { margin-bottom: 1rem; }
@@ -456,3 +456,14 @@ body {
 
 /* Remove BASE_URL image prefix issues */
 .lesson-hero img { width: 100%; height: 320px; object-fit: cover; border-radius: 10px; margin-bottom: 1.5rem; }
+
+/* Tables (GFM) */
+.lesson-content table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.95rem; }
+.lesson-content th, .lesson-content td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+.lesson-content th { background: var(--surface); color: var(--gold); font-weight: 600; }
+.lesson-content tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+
+/* Follow-up question */
+.follow-up-question { margin-top: 2rem; padding: 1.25rem; border: 1px solid var(--gold); border-radius: 8px; background: rgba(218,165,32,0.08); }
+.follow-up-question h3 { color: var(--gold); margin: 0 0 0.5rem; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.follow-up-question .follow-up-text { margin: 0; font-style: italic; font-size: 1.1rem; line-height: 1.6; color: var(--text); }
