@@ -34,7 +34,9 @@ export default function LessonPage() {
   const [streamParable, setStreamParable] = useState('');
   const [streamImage, setStreamImage] = useState<string | null>(null);
   const [streamDone, setStreamDone] = useState(false);
+  const [waitingForGen, setWaitingForGen] = useState(false);
   const esRef = useRef<EventSource | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { window.scrollTo(0, 0); }, [seriesKey, sortOrder]);
 
@@ -49,32 +51,64 @@ export default function LessonPage() {
       .catch(console.error);
   }, [seriesKey]);
 
-  // Normal mode: load existing lesson
+  // Normal mode: load existing lesson, or poll if still generating
   useEffect(() => {
     if (!seriesKey || !sortOrder || isStreaming) return;
     setLoading(true);
+
+    let foundSeries: APISeries | null = null;
 
     api.get<APISeries[]>('/series')
       .then(r => {
         const found = r.data.find(s => s.key === seriesKey);
         if (!found) return;
+        foundSeries = found;
         setSeries(found);
         return api.get<APILessonsResponse>(`/series/${found._id}/lessons?page=1`);
       })
       .then(r => {
-        if (!r) return;
+        if (!r || !foundSeries) return;
         setTotalLessons(r.data.total);
         const found = r.data.lessons.find(l => l.sortOrder === Number(sortOrder));
-        if (!found) return;
-        return api.get<APILesson>(`/lessons/${found._id}`);
-      })
-      .then(r => {
-        if (!r) return;
-        setLesson(r.data);
-        if (user) api.post(`/lessons/${r.data._id}/read`).catch(() => {});
+        if (found) {
+          // Lesson exists — load it
+          return api.get<APILesson>(`/lessons/${found._id}`).then(lr => {
+            setLesson(lr.data);
+            if (user) api.post(`/lessons/${lr.data._id}/read`).catch(() => {});
+          });
+        } else {
+          // Lesson doesn't exist yet — check if generation is in progress
+          return api.get<{ generating: boolean }>(`/series/${foundSeries!._id}/generation-status`).then(gs => {
+            if (gs.data.generating) {
+              // Poll every 2s until lesson appears
+              setWaitingForGen(true);
+              setLoading(false);
+              const sid = foundSeries!._id;
+              pollRef.current = setInterval(async () => {
+                try {
+                  const lr = await api.get<APILessonsResponse>(`/series/${sid}/lessons?page=1`);
+                  setTotalLessons(lr.data.total);
+                  const l = lr.data.lessons.find(l => l.sortOrder === Number(sortOrder));
+                  if (l) {
+                    clearInterval(pollRef.current!);
+                    pollRef.current = null;
+                    const full = await api.get<APILesson>(`/lessons/${l._id}`);
+                    setLesson(full.data);
+                    setWaitingForGen(false);
+                    if (user) api.post(`/lessons/${full.data._id}/read`).catch(() => {});
+                  }
+                } catch { /* ignore */ }
+              }, 2000);
+            }
+          });
+        }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    return () => {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    };
   }, [seriesKey, sortOrder, user, isStreaming]);
 
   // Streaming mode: open SSE
@@ -130,7 +164,27 @@ export default function LessonPage() {
     es.addEventListener('error', () => {
       es.close();
       esRef.current = null;
-      setStreamPhase('error');
+      // SSE failed (possibly 409 — generation already running from before reload)
+      // Fall back to polling for the lesson to appear
+      setWaitingForGen(true);
+      if (series) {
+        pollRef.current = setInterval(async () => {
+          try {
+            const lr = await api.get<APILessonsResponse>(`/series/${series._id}/lessons?page=1`);
+            setTotalLessons(lr.data.total);
+            const l = lr.data.lessons.find(l => l.sortOrder === Number(sortOrder));
+            if (l) {
+              clearInterval(pollRef.current!);
+              pollRef.current = null;
+              const full = await api.get<APILesson>(`/lessons/${l._id}`);
+              setLesson(full.data);
+              setWaitingForGen(false);
+              setSearchParams({}, { replace: true });
+              if (user) api.post(`/lessons/${full.data._id}/read`).catch(() => {});
+            }
+          } catch { /* ignore */ }
+        }, 2000);
+      }
     });
 
     return () => { es.close(); };
@@ -199,6 +253,30 @@ export default function LessonPage() {
             </div>
           )}
         </article>
+      </div>
+    );
+  }
+
+  // Waiting for generation to finish (reload mid-stream)
+  if (waitingForGen && !lesson) {
+    return (
+      <div className="container">
+        <nav className="breadcrumb">
+          <Link to="/" className="nav-link">Home</Link>
+          <span className="breadcrumb-sep">›</span>
+          {series && <Link to={`/${series.key}`} className="nav-link">{series.title}</Link>}
+          <span className="breadcrumb-sep">›</span>
+          <span>Day {sortNum}</span>
+        </nav>
+        <header className="lesson-header">
+          <span className="lesson-day-badge">Day {sortNum}</span>
+          <p style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 600 }}>⏳ Generation in progress — waiting for lesson...</p>
+        </header>
+        <div style={{ padding: '2rem 0' }}>
+          <div className="skeleton-line skeleton-long" />
+          <div className="skeleton-line skeleton-short" style={{ marginTop: '0.5rem' }} />
+          <div className="skeleton-line skeleton-long" style={{ marginTop: '0.5rem' }} />
+        </div>
       </div>
     );
   }
