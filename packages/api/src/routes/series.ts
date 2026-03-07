@@ -15,13 +15,16 @@
  * rateLimiter (checkCreateSeriesLimit), auth middleware
  */
 import { Router, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { Series } from '../models/Series.js';
 import { Lesson } from '../models/Lesson.js';
 import { Subscription } from '../models/Subscription.js';
 import { GenerationJob } from '../models/GenerationJob.js';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireAuth, requireAdmin, type AuthPayload } from '../middleware/auth.js';
 import { checkCreateSeriesLimit } from '../middleware/rateLimiter.js';
 import { createSeriesWithFirstLesson, createLessonForSeries } from '../services/generationService.js';
+import { streamStandardLesson, streamParable, generateLessonMeta } from '../services/aiTools.js';
+import { generateAndUploadImage } from '../services/imageService.js';
 
 const router = Router();
 
@@ -63,7 +66,143 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/series/:seriesId/generate - trigger next lesson generation (admin)
+// GET /api/series/:seriesId/generate-stream - SSE streaming lesson generation (admin)
+router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => {
+  // Auth via query param (EventSource can't set headers)
+  const token = req.query.token as string;
+  if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+  let payload: AuthPayload;
+  try {
+    payload = jwt.verify(token, process.env.JWT_SECRET!) as AuthPayload;
+  } catch {
+    res.status(401).json({ error: 'Invalid token' }); return;
+  }
+  if (payload.role !== 'admin') { res.status(403).json({ error: 'Forbidden' }); return; }
+
+  const { seriesId } = req.params;
+  const series = await Series.findOne({ _id: seriesId, deletedAt: { $exists: false } });
+  if (!series) { res.status(404).json({ error: 'Series not found' }); return; }
+
+  const existing = await GenerationJob.findOne({ seriesId });
+  if (existing) { res.status(409).json({ error: 'Generation already in progress' }); return; }
+
+  // SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // disable nginx buffering
+  res.flushHeaders();
+
+  const send = (event: string, data: object) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  // Create job
+  await GenerationJob.findOneAndUpdate(
+    { seriesId },
+    { status: 'generating', action: 'create', startedAt: new Date(), createdAt: new Date() },
+    { upsert: true }
+  );
+
+  let aborted = false;
+  req.on('close', async () => {
+    aborted = true;
+    await GenerationJob.deleteOne({ seriesId });
+  });
+
+  try {
+    // Load previous lessons
+    const prevLessons = await Lesson.find({ seriesId, deletedAt: { $exists: false } }).sort({ sortOrder: 1 });
+    const prevLessonData = prevLessons.map(l => ({ title: l.title, followUpQuestion: l.followUpQuestion }));
+    const lastLesson = prevLessons[prevLessons.length - 1];
+    const nextSortOrder = (lastLesson?.sortOrder || 0) + 1;
+
+    const formatChars = (chars: { name: string; pronoun: string; role?: string }[]) =>
+      chars.length === 0 ? 'None yet — create new characters.' : chars.map(c => `${c.name} (${c.pronoun}, ${c.role || 'character'})`).join(', ');
+
+    // Phase 1: Stream standard lesson
+    if (aborted) return;
+    send('phase', { phase: 'standard' });
+    const standardContent = await streamStandardLesson({
+      seriesName: series.title,
+      seriesTheme: series.theme,
+      newDay: nextSortOrder,
+      tomorrowQuestion: lastLesson?.followUpQuestion || undefined,
+      prevLessons: prevLessonData,
+    }, (text) => {
+      if (!aborted) send('delta', { section: 'standard', text });
+    });
+
+    // Phase 2: Stream parable
+    if (aborted) return;
+    send('phase', { phase: 'parable' });
+    const parableContent = await streamParable({
+      standardContent,
+      parableCharacters: formatChars(series.characters || []),
+      seriesName: series.title,
+    }, (text) => {
+      if (!aborted) send('delta', { section: 'parable', text });
+    });
+
+    // Phase 3: Generate metadata (non-streaming, fast)
+    if (aborted) return;
+    send('phase', { phase: 'meta' });
+    const meta = await generateLessonMeta({
+      standardContent,
+      parableContent,
+      seriesName: series.title,
+      newDay: nextSortOrder,
+      existingCharacters: series.characters || [],
+    });
+
+    // Phase 4: Generate image
+    if (aborted) return;
+    send('phase', { phase: 'image' });
+    let imageUrl: string | undefined;
+    try {
+      imageUrl = await generateAndUploadImage(meta.dallePrompt, series.key, nextSortOrder);
+    } catch (err) {
+      console.error('Image generation failed:', err);
+    }
+
+    // Save lesson
+    if (aborted) return;
+    const lesson = await Lesson.create({
+      seriesId: series._id,
+      sortOrder: nextSortOrder,
+      title: meta.title,
+      content: standardContent,
+      followUpQuestion: meta.followUpQuestion,
+      date: new Date(),
+      image: imageUrl,
+      parable: parableContent,
+      poem: meta.sonnet,
+    });
+
+    // Merge new characters
+    const existingNames = new Set(series.characters.map(c => c.name));
+    const newChars = meta.characters.filter(c => !existingNames.has(c.name));
+    if (newChars.length > 0) {
+      await Series.findByIdAndUpdate(series._id, { $push: { characters: { $each: newChars } } });
+    }
+
+    // Cleanup + done
+    await GenerationJob.deleteOne({ seriesId });
+    send('done', { lessonId: String(lesson._id), image: imageUrl || null });
+    res.end();
+  } catch (err) {
+    console.error('SSE generation error:', err);
+    const msg = err instanceof Error ? err.message : 'Generation failed';
+    if (!aborted) {
+      send('error', { message: msg });
+      res.end();
+    }
+    await GenerationJob.deleteOne({ seriesId });
+  }
+});
+
+// POST /api/series/:seriesId/generate - trigger next lesson generation (admin, fallback)
 router.post('/:seriesId/generate', requireAdmin, async (req: Request, res: Response) => {
   const { seriesId } = req.params;
 
