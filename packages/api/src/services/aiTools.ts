@@ -87,7 +87,7 @@ export async function generateLesson(
     input_schema: {
       type: 'object' as const,
       properties: {
-        title: { type: 'string', description: 'Lesson title' },
+        title: { type: 'string', description: 'Lesson title — short and simple, 3-6 words max, no fancy vocabulary' },
         content: {
           type: 'string',
           description: 'Markdown lesson content. Explain like I am 5 years old — use simple words, short sentences, and relatable everyday analogies. Must include: answer to the question, key concepts, why it matters, how it works, and a wisdom quote with attribution. Be brief — aim for 150-250 words total.',
