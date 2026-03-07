@@ -25,6 +25,7 @@ import AuthCallbackPage from './pages/AuthCallbackPage.js';
 import AdminPage from './pages/AdminPage.js';
 import NewSeriesPage from './pages/NewSeriesPage.js';
 import DevPage from './pages/DevPage.js';
+import DemoStreamPage from './pages/DemoStreamPage.js';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -49,6 +50,7 @@ function App() {
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/dev" element={<DevPage />} />
+              <Route path="/demo-stream" element={<DemoStreamPage />} />
               <Route path="/:seriesKey" element={<SeriesPage />} />
               <Route path="/:seriesKey/lesson/:sortOrder" element={<LessonPage />} />
             </Routes>

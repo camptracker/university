@@ -42,6 +42,61 @@ router.get('/popular', async (_req: Request, res: Response) => {
   res.json(seriesList);
 });
 
+// GET /api/series/demo-stream — pick a random lesson and mock-stream it via SSE (admin only)
+router.get('/demo-stream', async (req: Request, res: Response) => {
+  const token = req.query.token as string;
+  if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+  let payload: AuthPayload;
+  try {
+    payload = jwt.verify(token, process.env.JWT_SECRET!) as AuthPayload;
+  } catch {
+    res.status(401).json({ error: 'Invalid token' }); return;
+  }
+  if (payload.role !== 'admin') { res.status(403).json({ error: 'Forbidden' }); return; }
+
+  const count = await Lesson.countDocuments({ deletedAt: { $exists: false }, content: { $exists: true, $ne: '' }, parable: { $exists: true, $ne: '' } });
+  if (!count) { res.status(404).json({ error: 'No lessons found' }); return; }
+  const skip = Math.floor(Math.random() * count);
+  const lesson = await Lesson.findOne({ deletedAt: { $exists: false }, content: { $exists: true, $ne: '' }, parable: { $exists: true, $ne: '' } }).skip(skip);
+  if (!lesson) { res.status(404).json({ error: 'No lessons found' }); return; }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+
+  const send = (event: string, data: unknown) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const streamWords = (section: string, text: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const words = text.split(/(\s+)/);
+      let i = 0;
+      const iv = setInterval(() => {
+        const chunk = words.slice(i, i + 3).join('');
+        if (chunk) send('delta', { section, text: chunk });
+        i += 3;
+        if (i >= words.length) { clearInterval(iv); resolve(); }
+      }, 50);
+    });
+  };
+
+  send('phase', { phase: 'parable' });
+  await streamWords('parable', lesson.parable!);
+
+  send('phase', { phase: 'standard' });
+  await streamWords('standard', lesson.content!);
+
+  send('phase', { phase: 'image' });
+  await new Promise(r => setTimeout(r, 500));
+
+  send('done', { image: lesson.image || null });
+  res.end();
+});
+
 // POST /api/series - create new series (auth, rate 3/user/day)
 router.post('/', requireAuth, async (req: Request, res: Response) => {
   const userId = req.authUser!.userId;

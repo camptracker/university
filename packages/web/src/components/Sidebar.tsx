@@ -71,13 +71,22 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           )}
 
           {user?.role === 'admin' && (
-            <Link
-              to="/admin"
-              className={`sidebar-item ${location.pathname === '/admin' ? 'active' : ''}`}
-              onClick={onClose}
-            >
-              <span className="sidebar-item-name">Admin</span>
-            </Link>
+            <>
+              <Link
+                to="/admin"
+                className={`sidebar-item ${location.pathname === '/admin' ? 'active' : ''}`}
+                onClick={onClose}
+              >
+                <span className="sidebar-item-name">Admin</span>
+              </Link>
+              <Link
+                to="/demo-stream"
+                className={`sidebar-item ${location.pathname === '/demo-stream' ? 'active' : ''}`}
+                onClick={onClose}
+              >
+                <span className="sidebar-item-name">🎬 Demo Stream</span>
+              </Link>
+            </>
           )}
 
           <div className="sidebar-divider" />
