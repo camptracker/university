@@ -216,17 +216,6 @@ body {
   100% { background-position: -200% 0; }
 }
 
-/* Streaming word-by-word fade-in */
-.stream-word {
-  opacity: 0;
-  display: inline;
-  animation: wordFadeIn 0.4s ease-out forwards;
-}
-@keyframes wordFadeIn {
-  0% { opacity: 0; filter: blur(3px); }
-  100% { opacity: 1; filter: blur(0); }
-}
-
 /* Lesson hero image */
 .lesson-hero {
   margin: 0 -1.5rem 2rem;
