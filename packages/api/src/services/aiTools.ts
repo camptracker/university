@@ -106,19 +106,19 @@ Day ${newDay}: [Title]
 
 ${tomorrowQuestion ? `[IMPORTANT: The previous lesson ended with this question: "${tomorrowQuestion}" — You MUST open the lesson by directly answering this question in 2-3 sentences before moving on. This creates continuity between lessons.]` : `[Brief intro to the topic if Day 1]`}
 
-🧱 The Concept
+The Concept
 [1-2 sentences]
 
-❓ Why It Matters
+Why It Matters
 [2-3 sentences]
 
-⚙️ How It Works
+How It Works
 [3-5 sentences with concrete examples]
 
-🎯 ${wisdomLabel}
+${wisdomLabel}
 [1-2 sentences]
 
-❓ Tomorrow's Question
+Tomorrow's Question
 — Use the Socratic method: ask a thought-provoking question that challenges assumptions, invites deeper thinking, and naturally leads to the next concept. Don't ask a simple factual question — ask one that makes the reader wrestle with an idea.
 IMPORTANT: Do NOT repeat or rephrase any previous question listed above.
 
@@ -126,7 +126,7 @@ Use ** for bold markdown on section headers and key terms.
 
 The "parable" must continue the story using ${parableCharacters}, teaching the EXACT same concept as the standard. End with a moral and a teaser for tomorrow. Use rich, literary prose.
 
-The "sonnet" must be a 14-line Shakespearean sonnet (ABAB CDCD EFEF GG), titled "🪶 Sonnet [Roman numeral for day ${newDay}]: [Title]". Wrap the title in bold. The final couplet must be italicized with *. The sonnet should capture the lesson's essence poetically.
+The "sonnet" must be a 14-line Shakespearean sonnet (ABAB CDCD EFEF GG), titled "Sonnet [Roman numeral for day ${newDay}]: [Title]". Wrap the title in bold. The final couplet must be italicized with *. The sonnet should capture the lesson's essence poetically.
 
 The "dallePrompt" should describe a classical oil painting scene inspired by the sonnet's imagery. Do NOT include this boilerplate in dallePrompt — just describe the scene. I will add the style instructions.
 
