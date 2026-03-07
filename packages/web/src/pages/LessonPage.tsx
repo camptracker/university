@@ -10,55 +10,13 @@ import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import StreamingText from '../components/StreamingText.js';
 import api, { type APILesson, type APISeries, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
 const API_BASE = (api.defaults.baseURL || '').replace(/\/api$/, '');
 
 type Tab = 'parable' | 'content';
-
-/**
- * Buffers incoming text and reveals one word every 200ms for a smooth effect.
- * Full markdown styling is preserved via ReactMarkdown.
- */
-function StreamingText({ text, className }: { text: string; className?: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [visibleText, setVisibleText] = useState('');
-  const bufferRef = useRef('');       // full text received so far
-  const revealedRef = useRef(0);      // number of words revealed
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Update buffer when new text arrives
-  useEffect(() => {
-    bufferRef.current = text;
-  }, [text]);
-
-  // Word reveal timer
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      const allWords = bufferRef.current.split(/(\s+)/);
-      const revealed = revealedRef.current;
-      if (revealed < allWords.length) {
-        revealedRef.current = revealed + 1;
-        setVisibleText(allWords.slice(0, revealed + 1).join(''));
-      }
-    }, 20);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
-
-  // Auto-scroll
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
-    }
-  }, [visibleText]);
-
-  return (
-    <div ref={containerRef} className={`lesson-content ${className || ''}`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{visibleText}</ReactMarkdown>
-    </div>
-  );
-}
 
 export default function LessonPage() {
   const { seriesKey, sortOrder } = useParams<{ seriesKey: string; sortOrder: string }>();

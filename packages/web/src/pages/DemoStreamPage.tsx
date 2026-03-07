@@ -4,45 +4,12 @@
  */
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import StreamingText from '../components/StreamingText.js';
 import api from '../lib/api.js';
 
 const API_BASE = (api.defaults.baseURL || '').replace(/\/api$/, '');
 
 type Tab = 'parable' | 'content';
-
-function StreamingText({ text, className }: { text: string; className?: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [visibleText, setVisibleText] = useState('');
-  const bufferRef = useRef('');
-  const revealedRef = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => { bufferRef.current = text; }, [text]);
-
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      const allWords = bufferRef.current.split(/(\s+)/);
-      const revealed = revealedRef.current;
-      if (revealed < allWords.length) {
-        revealedRef.current = revealed + 1;
-        setVisibleText(allWords.slice(0, revealed + 1).join(''));
-      }
-    }, 20);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
-
-  useEffect(() => {
-    if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight;
-  }, [visibleText]);
-
-  return (
-    <div ref={containerRef} className={`lesson-content ${className || ''}`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{visibleText}</ReactMarkdown>
-    </div>
-  );
-}
 
 export default function DemoStreamPage() {
   const [tab, setTab] = useState<Tab>('parable');
