@@ -29,10 +29,16 @@ import DemoStreamPage from './pages/DemoStreamPage.js';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('theme') as 'dark' | 'light') || 'dark';
+  });
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }, []);
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
   return (
     <AuthProvider>
@@ -40,9 +46,14 @@ function App() {
         <div className="app-layout">
           <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <div className="main-content">
-            <button className="hamburger" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
-              ☰
-            </button>
+            <div className="top-bar">
+              <button className="hamburger" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+                ☰
+              </button>
+              <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
+            </div>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/subscriptions" element={<SubscriptionsPage />} />
