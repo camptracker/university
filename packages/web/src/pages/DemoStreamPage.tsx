@@ -29,7 +29,7 @@ function StreamingText({ text, className }: { text: string; className?: string }
         revealedRef.current = revealed + 1;
         setVisibleText(allWords.slice(0, revealed + 1).join(''));
       }
-    }, 60);
+    }, 20);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
@@ -52,6 +52,16 @@ export default function DemoStreamPage() {
   const [streamImage, setStreamImage] = useState<string | null>(null);
   const [streamDone, setStreamDone] = useState(false);
   const [started, setStarted] = useState(false);
+  const autoStarted = useRef(false);
+
+  // Auto-start on mount
+  useEffect(() => {
+    if (!autoStarted.current) {
+      autoStarted.current = true;
+      const token = localStorage.getItem('accessToken');
+      if (token) startStream();
+    }
+  }, []);
 
   const startStream = () => {
     setStarted(true);

@@ -42,7 +42,7 @@ function StreamingText({ text, className }: { text: string; className?: string }
         revealedRef.current = revealed + 1;
         setVisibleText(allWords.slice(0, revealed + 1).join(''));
       }
-    }, 60);
+    }, 20);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
