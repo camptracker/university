@@ -36,7 +36,7 @@ export default function StreamingText({ text, className }: Props) {
         // Count actual words (non-whitespace tokens)
         setVisibleWordCount(newText.split(/\s+/).filter(Boolean).length);
       }
-    }, 20);
+    }, 30);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
