@@ -23,7 +23,7 @@ import { GenerationJob } from '../models/GenerationJob.js';
 import { requireAuth, requireAdmin, type AuthPayload } from '../middleware/auth.js';
 import { checkCreateSeriesLimit } from '../middleware/rateLimiter.js';
 import { createSeriesWithFirstLesson, createLessonForSeries } from '../services/generationService.js';
-import { streamStandardLesson, streamParable, generateLessonMeta } from '../services/aiTools.js';
+import { streamLesson, generateLessonMeta } from '../services/aiTools.js';
 import { generateAndUploadImage } from '../services/imageService.js';
 
 const router = Router();
@@ -125,23 +125,20 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       if (!clientDisconnected) send(event, data);
     };
 
-    // Phase 1: Stream standard lesson (needed as context for parable)
-    safeSend('phase', { phase: 'standard' });
-    const standardContent = await streamStandardLesson({
+    // Single streaming call: parable first, then standard lesson
+    safeSend('phase', { phase: 'parable' });
+    const { parable: parableContent, standard: standardContent } = await streamLesson({
       seriesName: series.title,
       seriesTheme: series.theme,
+      parableCharacters: formatChars(series.characters || []),
       newDay: nextSortOrder,
       tomorrowQuestion: lastLesson?.followUpQuestion || undefined,
       prevLessons: prevLessonData,
-    }, (text) => safeSend('delta', { section: 'standard', text }));
-
-    // Phase 2: Stream parable
-    safeSend('phase', { phase: 'parable' });
-    const parableContent = await streamParable({
-      standardContent,
-      parableCharacters: formatChars(series.characters || []),
-      seriesName: series.title,
-    }, (text) => safeSend('delta', { section: 'parable', text }));
+    }, {
+      onParableDelta: (text) => safeSend('delta', { section: 'parable', text }),
+      onStandardDelta: (text) => safeSend('delta', { section: 'standard', text }),
+      onSectionSwitch: () => safeSend('phase', { phase: 'standard' }),
+    });
 
     // Phase 3: Generate metadata (non-streaming, fast)
     safeSend('phase', { phase: 'meta' });

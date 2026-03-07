@@ -7,8 +7,7 @@
  * Exported functions:
  * - `createSeriesDetails(topic)` → SeriesDetails — series metadata from a topic string
  * - `generateFullLesson(opts)` → FullLessonOutput — all content in one call
- * - `streamStandardLesson(opts, onDelta)` → string — streams standard lesson via callback
- * - `streamParable(opts, onDelta)` → string — streams parable via callback
+ * - `streamLesson(opts, callbacks)` → {parable, standard} — single call, streams parable first then standard
  * - `generateLessonMeta(opts)` → metadata — title, sonnet, dallePrompt, followUpQuestion, characters
  *
  * Exported interfaces: SeriesDetails, FullLessonOutput
@@ -173,20 +172,28 @@ Return ONLY valid JSON. No markdown code fences. No explanation.`;
 // ─── Streaming Functions ──────────────────────────────────────────────────────
 
 const STREAM_MODEL = 'claude-sonnet-4-20250514';
+const SECTION_DELIMITER = '---LESSON_SECTION_BREAK---';
 
-export interface StreamStandardOpts {
+export interface StreamLessonOpts {
   seriesName: string;
   seriesTheme: string;
+  parableCharacters: string;
   newDay: number;
   tomorrowQuestion?: string;
   prevLessons: { title: string; followUpQuestion: string }[];
 }
 
-export async function streamStandardLesson(
-  opts: StreamStandardOpts,
-  onDelta: (text: string) => void
-): Promise<string> {
-  const { seriesName, seriesTheme, newDay, tomorrowQuestion, prevLessons } = opts;
+export interface StreamCallbacks {
+  onParableDelta: (text: string) => void;
+  onStandardDelta: (text: string) => void;
+  onSectionSwitch: () => void; // called when switching from parable to standard
+}
+
+export async function streamLesson(
+  opts: StreamLessonOpts,
+  callbacks: StreamCallbacks
+): Promise<{ parable: string; standard: string }> {
+  const { seriesName, seriesTheme, parableCharacters, newDay, tomorrowQuestion, prevLessons } = opts;
   const wisdomLabel = 'Real-World Wisdom';
 
   const historyBlock = prevLessons.length > 0
@@ -195,15 +202,26 @@ export async function streamStandardLesson(
 
   const system = `You are a lesson generator for the "${seriesName}" series.
 Theme: ${seriesTheme}
+Parable Characters: ${parableCharacters}
 ${historyBlock}
 
-Write ONLY the standard lesson in markdown. No JSON. No code fences.
+You will write TWO sections in order. Output the parable FIRST, then the standard lesson.
+Separate them with exactly this line on its own: ${SECTION_DELIMITER}
 
+SECTION 1 — PARABLE (write this first):
+Write a parable story in markdown using the characters above (${parableCharacters}).
+The parable must teach the concept for Day ${newDay}.
+${tomorrowQuestion ? `The previous lesson ended with: "${tomorrowQuestion}" — the parable should explore this theme.` : 'This is the first lesson — introduce the characters and the series theme.'}
+End with a moral and a teaser for tomorrow. Use rich, literary prose.
+
+Then output exactly: ${SECTION_DELIMITER}
+
+SECTION 2 — STANDARD LESSON (write this second):
 Follow this format exactly:
 
 Day ${newDay}: [Title]
 
-${tomorrowQuestion ? `[IMPORTANT: The previous lesson ended with this question: "${tomorrowQuestion}" — You MUST open the lesson by directly answering this question in 2-3 sentences before moving on.]` : `[Brief intro to the topic if Day 1]`}
+${tomorrowQuestion ? `[IMPORTANT: The previous lesson ended with this question: "${tomorrowQuestion}" — You MUST open by directly answering this question in 2-3 sentences before moving on.]` : `[Brief intro to the topic if Day 1]`}
 
 The Concept
 [1-2 sentences]
@@ -221,62 +239,84 @@ Tomorrow's Question
 — Use the Socratic method: ask a thought-provoking question that challenges assumptions, invites deeper thinking, and naturally leads to the next concept.
 IMPORTANT: Do NOT repeat or rephrase any previous question listed above.
 
-Use ** for bold markdown on section headers and key terms.`;
+Use ** for bold markdown on section headers and key terms.
+The standard lesson MUST teach the EXACT same concept as the parable above.`;
 
   let accumulated = '';
+  let inStandard = false;
+  let parableText = '';
+  let standardText = '';
+
   const stream = anthropic.messages.stream({
     model: STREAM_MODEL,
-    max_tokens: 2048,
+    max_tokens: 4096,
     system,
-    messages: [{ role: 'user', content: `Write the Day ${newDay} lesson.` }],
+    messages: [{ role: 'user', content: `Write Day ${newDay}: parable first, then standard lesson.` }],
   });
 
   for await (const event of stream) {
     if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      accumulated += event.delta.text;
-      onDelta(event.delta.text);
+      const chunk = event.delta.text;
+      accumulated += chunk;
+
+      if (!inStandard) {
+        // Check if delimiter appears in accumulated text
+        const delimIdx = accumulated.indexOf(SECTION_DELIMITER);
+        if (delimIdx !== -1) {
+          // Split: everything before delimiter is parable, after is standard
+          const beforeDelim = accumulated.slice(0, delimIdx);
+          const afterDelim = accumulated.slice(delimIdx + SECTION_DELIMITER.length);
+
+          // Emit any remaining parable text that wasn't sent yet
+          const remainingParable = beforeDelim.slice(parableText.length);
+          if (remainingParable) {
+            parableText = beforeDelim;
+            callbacks.onParableDelta(remainingParable);
+          }
+
+          inStandard = true;
+          callbacks.onSectionSwitch();
+
+          // Emit any standard text that came in this chunk
+          const trimmedAfter = afterDelim.replace(/^\n+/, '');
+          if (trimmedAfter) {
+            standardText = trimmedAfter;
+            callbacks.onStandardDelta(trimmedAfter);
+          }
+        } else {
+          // Still in parable — emit delta
+          // But buffer a bit in case delimiter is split across chunks
+          const safeLen = Math.max(0, accumulated.length - SECTION_DELIMITER.length);
+          const safeText = accumulated.slice(0, safeLen);
+          const newParable = safeText.slice(parableText.length);
+          if (newParable) {
+            parableText = safeText;
+            callbacks.onParableDelta(newParable);
+          }
+        }
+      } else {
+        // In standard section — emit directly
+        standardText += chunk;
+        callbacks.onStandardDelta(chunk);
+      }
     }
   }
 
-  return accumulated;
-}
-
-export interface StreamParableOpts {
-  standardContent: string;
-  parableCharacters: string;
-  seriesName: string;
-}
-
-export async function streamParable(
-  opts: StreamParableOpts,
-  onDelta: (text: string) => void
-): Promise<string> {
-  const { standardContent, parableCharacters, seriesName } = opts;
-
-  const system = `You are a parable writer for the "${seriesName}" series.
-Characters: ${parableCharacters}
-
-Write ONLY the parable story in markdown. No JSON. No code fences.
-The parable must teach the EXACT same concept as the standard lesson below.
-Continue the story using the existing characters. End with a moral and a teaser for tomorrow.
-Use rich, literary prose.`;
-
-  let accumulated = '';
-  const stream = anthropic.messages.stream({
-    model: STREAM_MODEL,
-    max_tokens: 2048,
-    system,
-    messages: [{ role: 'user', content: `Standard lesson:\n\n${standardContent}\n\nWrite the parable.` }],
-  });
-
-  for await (const event of stream) {
-    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      accumulated += event.delta.text;
-      onDelta(event.delta.text);
+  // Flush any remaining buffered parable text
+  if (!inStandard) {
+    const remaining = accumulated.slice(parableText.length);
+    if (remaining) {
+      parableText += remaining;
+      callbacks.onParableDelta(remaining);
     }
   }
 
-  return accumulated;
+  // Clean up: if delimiter never appeared, everything is parable
+  if (!inStandard) {
+    return { parable: accumulated.trim(), standard: '' };
+  }
+
+  return { parable: parableText.trim(), standard: standardText.trim() };
 }
 
 export interface LessonMeta {
