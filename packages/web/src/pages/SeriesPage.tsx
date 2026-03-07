@@ -162,10 +162,8 @@ export default function SeriesPage() {
       </nav>
 
       <header className="home-header" style={{ textAlign: 'left' }}>
-        <div className="series-title-row">
-          {series.emoji && <span className="series-hero-emoji">{series.emoji}</span>}
-          <h1>{series.title}</h1>
-        </div>
+        {series.emoji && <div className="series-hero-emoji" style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>{series.emoji}</div>}
+        <h1>{series.title}</h1>
         <p className="subtitle">{series.description}</p>
         <div className="series-meta-row">
           <span className="series-subscriber-count">{series.subscriberCount} subscriber{series.subscriberCount !== 1 ? 's' : ''}</span>
