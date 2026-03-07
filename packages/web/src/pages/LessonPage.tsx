@@ -6,7 +6,7 @@
  * 2. Streaming: if ?stream=true, opens SSE to generate-stream endpoint and
  *    renders content in real-time as it arrives. When done, loads saved lesson.
  */
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -38,6 +38,7 @@ function StreamingText({ text }: { text: string }) {
 export default function LessonPage() {
   const { seriesKey, sortOrder } = useParams<{ seriesKey: string; sortOrder: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [series, setSeries] = useState<APISeries | null>(null);
   const [lesson, setLesson] = useState<APILesson | null>(null);
@@ -346,9 +347,15 @@ export default function LessonPage() {
         {sortNum > 1 ? (
           <Link to={`/${series.key}/lesson/${sortNum - 1}`} className="nav-link">← Day {sortNum - 1}</Link>
         ) : <span />}
-        {sortNum < totalLessons && (
+        {sortNum < totalLessons ? (
           <Link to={`/${series.key}/lesson/${sortNum + 1}`} className="nav-link">Day {sortNum + 1} →</Link>
-        )}
+        ) : user?.role === 'admin' ? (
+          <button
+            className="nav-link"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', color: 'var(--gold)' }}
+            onClick={() => navigate(`/${series.key}/lesson/${sortNum + 1}?stream=true`)}
+          >Generate Day {sortNum + 1} →</button>
+        ) : null}
       </nav>
     </div>
   );
