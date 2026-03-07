@@ -121,7 +121,7 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
     const formatChars = (chars: { name: string; pronoun: string; role?: string }[]) =>
       chars.length === 0 ? 'None yet — create new characters.' : chars.map(c => `${c.name} (${c.pronoun}, ${c.role || 'character'})`).join(', ');
 
-    // Phase 1: Stream standard lesson
+    // Phase 1: Stream standard lesson (hidden from user, needed for parable context)
     if (aborted) return;
     send('phase', { phase: 'standard' });
     const standardContent = await streamStandardLesson({
@@ -134,7 +134,7 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       if (!aborted) send('delta', { section: 'standard', text });
     });
 
-    // Phase 2: Stream parable
+    // Phase 2: Stream parable (shown first to user)
     if (aborted) return;
     send('phase', { phase: 'parable' });
     const parableContent = await streamParable({

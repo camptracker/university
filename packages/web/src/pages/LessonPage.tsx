@@ -24,7 +24,7 @@ export default function LessonPage() {
   const [series, setSeries] = useState<APISeries | null>(null);
   const [lesson, setLesson] = useState<APILesson | null>(null);
   const [totalLessons, setTotalLessons] = useState(0);
-  const [tab, setTab] = useState<Tab>('content');
+  const [tab, setTab] = useState<Tab>('parable');
   const [loading, setLoading] = useState(true);
 
   // Streaming state
@@ -91,6 +91,7 @@ export default function LessonPage() {
     es.addEventListener('phase', (e) => {
       const { phase } = JSON.parse(e.data);
       setStreamPhase(phase);
+      // Standard generates first (hidden), then parable streams visible
       if (phase === 'parable') setTab('parable');
     });
 
@@ -140,9 +141,9 @@ export default function LessonPage() {
   // Streaming mode render
   if (isStreaming || (streamStandard && !lesson)) {
     const phaseLabel: Record<string, string> = {
-      standard: '✍️ Generating lesson...',
+      standard: '✍️ Preparing lesson...',
       parable: '📖 Writing parable...',
-      meta: '🎵 Creating sonnet & metadata...',
+      meta: '🎵 Finishing up...',
       image: '🎨 Generating image...',
       error: '❌ Generation failed',
     };
@@ -174,25 +175,24 @@ export default function LessonPage() {
 
         <div className="toggle-container">
           <button
+            className={`toggle-btn ${tab === 'parable' ? 'active' : ''}`}
+            onClick={() => setTab('parable')}
+          >🏰 Parable</button>
+          <button
             className={`toggle-btn ${tab === 'content' ? 'active' : ''}`}
             onClick={() => setTab('content')}
             disabled={!streamStandard}
           >📖 Lesson</button>
-          <button
-            className={`toggle-btn ${tab === 'parable' ? 'active' : ''}`}
-            onClick={() => setTab('parable')}
-            disabled={!streamParable}
-          >🏰 Parable</button>
         </div>
 
         <article className="lesson-content">
-          {tab === 'content' && streamStandard && (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamStandard}</ReactMarkdown>
-          )}
           {tab === 'parable' && streamParable && (
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamParable}</ReactMarkdown>
           )}
-          {!streamStandard && !streamParable && streamPhase !== 'error' && (
+          {tab === 'content' && streamStandard && (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamStandard}</ReactMarkdown>
+          )}
+          {tab === 'parable' && !streamParable && streamPhase !== 'error' && (
             <div style={{ padding: '2rem 0' }}>
               <div className="skeleton-line skeleton-long" />
               <div className="skeleton-line skeleton-short" style={{ marginTop: '0.5rem' }} />
