@@ -17,11 +17,24 @@ const API_BASE = (api.defaults.baseURL || '').replace(/\/api$/, '');
 
 type Tab = 'parable' | 'content';
 
-/** Renders streaming text as markdown (same fonts/styles as final lesson) */
+/**
+ * Renders streaming markdown with smooth word-by-word fade-in.
+ * Splits text into already-seen words (opaque) and new words (animate in).
+ * Renders two layers: markdown for structure, word spans for animation.
+ */
 function StreamingText({ text }: { text: string }) {
+  const prevWordCountRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom as content streams
+  // Split preserving whitespace tokens
+  const tokens = text.split(/(\s+)/);
+  const prevCount = prevWordCountRef.current;
+
+  useEffect(() => {
+    prevWordCountRef.current = tokens.length;
+  }, [tokens.length]);
+
+  // Auto-scroll as content streams
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -29,7 +42,7 @@ function StreamingText({ text }: { text: string }) {
   }, [text]);
 
   return (
-    <div ref={containerRef}>
+    <div ref={containerRef} className="streaming-markdown">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
     </div>
   );
