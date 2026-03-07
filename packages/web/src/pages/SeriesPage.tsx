@@ -159,7 +159,7 @@ export default function SeriesPage() {
         <span>{series.title}</span>
       </nav>
 
-      <header className="home-header" style={{ textAlign: 'left' }}>
+      <header className="home-header" style={{ textAlign: 'left', paddingTop: '0.5rem' }}>
         <h1>{series.title}</h1>
         <p className="subtitle">{series.description}</p>
         <div className="series-meta-row">
