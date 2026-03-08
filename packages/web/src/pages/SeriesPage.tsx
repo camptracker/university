@@ -77,48 +77,14 @@ export default function SeriesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seriesKey, user]);
 
-  // Auto-start first lesson generation if 0 lessons and admin
+  // Auto-start first lesson: navigate to lesson page with streaming
   useEffect(() => {
     if (!series || loading || autoStartedRef.current) return;
     if (lessons.length > 0 || generating) return;
     if (user?.role !== 'admin') return;
 
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
     autoStartedRef.current = true;
-    setGenerating(true);
-
-    const es = new EventSource(`${API_BASE}/api/series/${series._id}/generate-stream?token=${token}`);
-    esRef.current = es;
-
-    es.addEventListener('title', (e) => {
-      const { title } = JSON.parse(e.data);
-      setPlaceholderTitle(title);
-    });
-
-    es.addEventListener('phase', (e) => {
-      const { phase } = JSON.parse(e.data);
-      setPlaceholderPhase(phase);
-    });
-
-    es.addEventListener('done', (e) => {
-      const { image } = JSON.parse(e.data);
-      if (image) setPlaceholderImage(image);
-      es.close();
-      esRef.current = null;
-      setGenerating(false);
-      // Refresh lessons to get the saved lesson
-      fetchLessons(series._id);
-    });
-
-    es.addEventListener('error', () => {
-      es.close();
-      esRef.current = null;
-      setGenerating(false);
-    });
-
-    return () => { es.close(); };
+    navigate(`/${series.key}/lesson/1?stream=true`);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [series, loading, lessons.length, generating, user]);
 

@@ -213,8 +213,7 @@ export async function createSeriesWithFirstLesson(topic: string, userId: string)
   // Subscribe creator
   await Subscription.create({ userId, seriesId: series._id });
 
-  // Generate first lesson in background
-  createFirstLessonForSeries(series).catch(console.error);
+  // First lesson is generated via SSE streaming when admin visits the series page
 
   return series;
 }
