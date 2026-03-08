@@ -276,6 +276,7 @@ body {
 .lesson-content p { margin-bottom: 1rem; }
 .lesson-content strong { color: var(--text-strong); }
 .lesson-content em { color: var(--text-muted); }
+.lesson-content.parable em { color: var(--gold); }
 .lesson-content hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
 .lesson-content blockquote {
   border-left: 3px solid var(--gold-dim); padding-left: 1rem;

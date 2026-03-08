@@ -127,7 +127,7 @@ IMPORTANT: Do NOT repeat or rephrase any previous question listed above.
 Use ** for bold markdown on section headers and key terms.
 
 The "parable" must continue the story using ${parableCharacters}, teaching the EXACT same concept as the standard. End with a moral and a teaser for tomorrow. Use rich, literary prose.
-Parable formatting: **Bold** all character names every time they appear. Use > blockquotes for all dialogue lines. Use *italics* for internal thoughts, sensory details, and emotional beats. Use --- between major scene transitions.
+Parable formatting: **Bold** all character names every time they appear. Wrap all spoken dialogue in *italics* (e.g. *"The seed does not rush,"* **Sable** whispered). Use --- between major scene transitions.
 
 The "sonnet" must be a 14-line Shakespearean sonnet (ABAB CDCD EFEF GG), titled "Sonnet [Roman numeral for day ${newDay}]: [Title]". Wrap the title in bold. The final couplet must be italicized with *. The sonnet should capture the lesson's essence poetically.
 
@@ -217,8 +217,7 @@ End with a moral and a teaser for tomorrow. Use rich, literary prose.
 
 Formatting rules:
 - **Bold** all character names every time they appear (e.g. **Kael**, **Sable**)
-- Use > blockquotes for all dialogue lines (e.g. > "The seed does not rush," **Sable** whispered.)
-- Use *italics* for internal thoughts, sensory details, and emotional beats
+- Wrap all spoken dialogue in *italics* (e.g. *"The seed does not rush,"* **Sable** whispered.)
 - Use --- horizontal rules between major scene transitions
 
 Then output exactly: ${SECTION_DELIMITER}
