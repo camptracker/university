@@ -139,9 +139,6 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
   const series = await Series.findOne({ _id: seriesId, deletedAt: { $exists: false } });
   if (!series) { res.status(404).json({ error: 'Series not found' }); return; }
 
-  const existing = await GenerationJob.findOne({ seriesId });
-  if (existing) { res.status(409).json({ error: 'Generation already in progress' }); return; }
-
   // SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -263,12 +260,6 @@ router.post('/:seriesId/generate', requireAdmin, async (req: Request, res: Respo
   const series = await Series.findOne({ _id: seriesId, deletedAt: { $exists: false } });
   if (!series) {
     res.status(404).json({ error: 'Series not found' });
-    return;
-  }
-
-  const existing = await GenerationJob.findOne({ seriesId });
-  if (existing) {
-    res.status(409).json({ error: 'Generation already in progress' });
     return;
   }
 
