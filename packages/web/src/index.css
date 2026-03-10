@@ -279,6 +279,31 @@ body {
 .char-lila { color: #e97ba8 !important; } /* Pink */
 .char-maren { color: #9b59b6 !important; } /* Purple */
 
+/* Parable context (question header) */
+.parable-context {
+  margin-bottom: 2rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.parable-context-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.parable-context-question {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.6;
+}
+
 .lesson-content h1, .lesson-content h2, .lesson-content h3 { color: var(--gold); margin: 1.5rem 0 0.5rem; }
 .lesson-content p { margin-bottom: 1rem; }
 .lesson-content strong { color: var(--text-strong); }

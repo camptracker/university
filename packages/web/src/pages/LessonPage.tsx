@@ -26,6 +26,7 @@ export default function LessonPage() {
   const { user } = useAuth();
   const [series, setSeries] = useState<APISeries | null>(null);
   const [lesson, setLesson] = useState<APILesson | null>(null);
+  const [prevQuestion, setPrevQuestion] = useState<string | null>(null);
   const [totalLessons, setTotalLessons] = useState(0);
   const [tab, setTab] = useState<Tab>('parable');
   const [loading, setLoading] = useState(true);
@@ -114,6 +115,27 @@ export default function LessonPage() {
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     };
   }, [seriesKey, sortOrder, user, isStreaming]);
+
+  // Fetch previous lesson's follow-up question (for context)
+  useEffect(() => {
+    if (!series) return;
+
+    const currentSort = lesson?.sortOrder || Number(sortOrder);
+    if (currentSort === 1) {
+      setPrevQuestion(null);
+      return;
+    }
+
+    // Fetch previous lesson
+    api.get<APILessonsResponse>(`/series/${series._id}/lessons?page=1`)
+      .then(r => {
+        const prevLesson = r.data.lessons.find(l => l.sortOrder === currentSort - 1);
+        if (prevLesson) {
+          setPrevQuestion(prevLesson.followUpQuestion);
+        }
+      })
+      .catch(console.error);
+  }, [lesson, series, sortOrder]);
 
   // Streaming mode: open SSE
   useEffect(() => {
@@ -249,17 +271,26 @@ export default function LessonPage() {
         </div>
 
         <article>
-          {tab === 'parable' && streamParable && (
-            <StreamingText text={streamParable} className="parable" />
+          {tab === 'parable' && (
+            <>
+              {prevQuestion && (
+                <div className="parable-context">
+                  <p className="parable-context-label">Today's Question:</p>
+                  <p className="parable-context-question">{prevQuestion}</p>
+                </div>
+              )}
+              {streamParable ? (
+                <StreamingText text={streamParable} className="parable" />
+              ) : streamPhase !== 'error' && (
+                <div style={{ padding: '2rem 0' }}>
+                  <div className="skeleton-line skeleton-long" />
+                  <div className="skeleton-line skeleton-short" style={{ marginTop: '0.5rem' }} />
+                </div>
+              )}
+            </>
           )}
           {tab === 'content' && streamStandard && (
             <StreamingText text={streamStandard} className="content" />
-          )}
-          {tab === 'parable' && !streamParable && streamPhase !== 'error' && (
-            <div style={{ padding: '2rem 0' }}>
-              <div className="skeleton-line skeleton-long" />
-              <div className="skeleton-line skeleton-short" style={{ marginTop: '0.5rem' }} />
-            </div>
           )}
         </article>
       </div>
@@ -326,7 +357,11 @@ export default function LessonPage() {
 
       <article className={`lesson-content ${tab}`} key={tab}>
         {tab === 'parable' && lesson.parable && (
-          <ParableRenderer text={lesson.parable} characters={series?.characters} />
+          <ParableRenderer 
+            text={lesson.parable} 
+            characters={series?.characters} 
+            answeringQuestion={prevQuestion}
+          />
         )}
         {tab === 'content' && lesson.content && (
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>

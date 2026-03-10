@@ -12,6 +12,7 @@ import type { Components } from 'react-markdown';
 interface Props {
   text: string;
   characters?: { name: string; color?: string }[];
+  answeringQuestion?: string | null;
 }
 
 // Default character color mapping
@@ -23,7 +24,7 @@ const DEFAULT_COLORS: Record<string, string> = {
   maren: '#9b59b6',     // Purple
 };
 
-export default function ParableRenderer({ text, characters = [] }: Props) {
+export default function ParableRenderer({ text, characters = [], answeringQuestion }: Props) {
   // Build character color map
   const charColors = useMemo(() => {
     const map = new Map<string, string>();
@@ -96,6 +97,12 @@ export default function ParableRenderer({ text, characters = [] }: Props) {
 
   return (
     <div className="lesson-content parable">
+      {answeringQuestion && (
+        <div className="parable-context">
+          <p className="parable-context-label">Today's Question:</p>
+          <p className="parable-context-question">{answeringQuestion}</p>
+        </div>
+      )}
       <ReactMarkdown 
         remarkPlugins={[remarkGfm]}
         components={components}
