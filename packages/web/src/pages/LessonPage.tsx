@@ -403,7 +403,6 @@ export default function LessonPage() {
       {lesson.parable && (
         <ParableRenderer 
           text={lesson.parable} 
-          characters={series?.characters} 
           answeringQuestion={prevQuestion}
           followUpQuestion={lesson.followUpQuestion}
         />
