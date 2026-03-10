@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import StreamingText from '../components/StreamingText.js';
+import ParableRenderer from '../components/ParableRenderer.js';
 import api, { type APILesson, type APISeries, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
@@ -32,6 +33,7 @@ export default function LessonPage() {
   // Streaming state
   const isStreaming = searchParams.get('stream') === 'true';
   const [streamPhase, setStreamPhase] = useState<string>('');
+  const [streamTitle, setStreamTitle] = useState('');
   const [streamStandard, setStreamStandard] = useState('');
   const [streamParable, setStreamParable] = useState('');
   const [streamImage, setStreamImage] = useState<string | null>(null);
@@ -127,12 +129,13 @@ export default function LessonPage() {
     es.addEventListener('phase', (e) => {
       const { phase } = JSON.parse(e.data);
       setStreamPhase(phase);
-      // Standard generates first (hidden), then parable streams visible
+      // Title streams first, then parable (visible), then standard
       if (phase === 'parable') setTab('parable');
     });
 
     es.addEventListener('delta', (e) => {
       const { section, text } = JSON.parse(e.data);
+      if (section === 'title') setStreamTitle(prev => prev + text);
       if (section === 'standard') setStreamStandard(prev => prev + text);
       if (section === 'parable') setStreamParable(prev => prev + text);
     });
@@ -197,6 +200,7 @@ export default function LessonPage() {
   // Streaming mode render
   if (isStreaming || (streamStandard && !lesson)) {
     const phaseLabel: Record<string, string> = {
+      title: '✨ Creating title...',
       standard: '✍️ Preparing lesson...',
       parable: '📖 Writing parable...',
       meta: '🎵 Finishing up...',
@@ -224,6 +228,7 @@ export default function LessonPage() {
 
         <header className="lesson-header">
           <span className="lesson-day-badge">Day {sortNum}</span>
+          {streamTitle && <h1 style={{ marginTop: '0.5rem' }}>{streamTitle}</h1>}
           {!streamDone && (
             <p style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 600 }}>
               {phaseLabel[streamPhase] || 'Starting...'}
@@ -321,7 +326,7 @@ export default function LessonPage() {
 
       <article className={`lesson-content ${tab}`} key={tab}>
         {tab === 'parable' && lesson.parable && (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.parable}</ReactMarkdown>
+          <ParableRenderer text={lesson.parable} characters={series?.characters} />
         )}
         {tab === 'content' && lesson.content && (
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>

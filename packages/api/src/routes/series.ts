@@ -180,9 +180,9 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       if (!clientDisconnected) send(event, data);
     };
 
-    // Single streaming call: parable first, then standard lesson
-    safeSend('phase', { phase: 'parable' });
-    const { parable: parableContent, standard: standardContent } = await streamLesson({
+    // Single streaming call: title, parable, then standard lesson
+    safeSend('phase', { phase: 'title' });
+    const { title: lessonTitle, parable: parableContent, standard: standardContent } = await streamLesson({
       seriesName: series.title,
       seriesTheme: series.theme,
       parableCharacters: formatChars(series.characters || []),
@@ -190,9 +190,16 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       tomorrowQuestion: lastLesson?.followUpQuestion || undefined,
       prevLessons: prevLessonData,
     }, {
+      onTitleDelta: (text) => safeSend('delta', { section: 'title', text }),
       onParableDelta: (text) => safeSend('delta', { section: 'parable', text }),
       onStandardDelta: (text) => safeSend('delta', { section: 'standard', text }),
-      onSectionSwitch: () => safeSend('phase', { phase: 'standard' }),
+      onSectionSwitch: () => {
+        if (!parableContent) {
+          safeSend('phase', { phase: 'parable' });
+        } else {
+          safeSend('phase', { phase: 'standard' });
+        }
+      },
     });
 
     // Phase 3: Generate metadata (non-streaming, fast)
@@ -204,9 +211,6 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       newDay: nextSortOrder,
       existingCharacters: series.characters || [],
     });
-
-    // Send title as soon as we have it
-    safeSend('title', { title: meta.title });
 
     // Phase 4: Generate image
     safeSend('phase', { phase: 'image' });
@@ -221,7 +225,7 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
     const lesson = await Lesson.create({
       seriesId: series._id,
       sortOrder: nextSortOrder,
-      title: meta.title,
+      title: lessonTitle,
       content: standardContent,
       followUpQuestion: meta.followUpQuestion,
       date: new Date(),

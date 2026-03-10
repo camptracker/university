@@ -272,6 +272,13 @@ body {
 .lesson-content.content { font-family: var(--sans); font-size: 1rem; }
 .lesson-content.poem { font-family: var(--serif); font-size: 1.2rem; text-align: center; font-style: italic; line-height: 2; }
 
+/* Character colors in parables */
+.char-kael { color: #4a9eff !important; } /* Blue */
+.char-sable { color: #b8922e !important; } /* Gold */
+.char-tobren { color: #8fbc8f !important; } /* Green */
+.char-lila { color: #e97ba8 !important; } /* Pink */
+.char-maren { color: #9b59b6 !important; } /* Purple */
+
 .lesson-content h1, .lesson-content h2, .lesson-content h3 { color: var(--gold); margin: 1.5rem 0 0.5rem; }
 .lesson-content p { margin-bottom: 1rem; }
 .lesson-content strong { color: var(--text-strong); }

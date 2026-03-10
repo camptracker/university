@@ -173,6 +173,7 @@ Return ONLY valid JSON. No markdown code fences. No explanation.`;
 // ─── Streaming Functions ──────────────────────────────────────────────────────
 
 const STREAM_MODEL = 'claude-sonnet-4-20250514';
+const TITLE_DELIMITER = '---TITLE_BREAK---';
 const SECTION_DELIMITER = '---LESSON_SECTION_BREAK---';
 
 export interface StreamLessonOpts {
@@ -185,6 +186,7 @@ export interface StreamLessonOpts {
 }
 
 export interface StreamCallbacks {
+  onTitleDelta: (text: string) => void;
   onParableDelta: (text: string) => void;
   onStandardDelta: (text: string) => void;
   onSectionSwitch: () => void; // called when switching from parable to standard
@@ -193,7 +195,7 @@ export interface StreamCallbacks {
 export async function streamLesson(
   opts: StreamLessonOpts,
   callbacks: StreamCallbacks
-): Promise<{ parable: string; standard: string }> {
+): Promise<{ title: string; parable: string; standard: string }> {
   const { seriesName, seriesTheme, parableCharacters, newDay, tomorrowQuestion, prevLessons } = opts;
   const wisdomLabel = 'Real-World Wisdom';
 
@@ -206,19 +208,27 @@ Theme: ${seriesTheme}
 Parable Characters: ${parableCharacters}
 ${historyBlock}
 
-You will write TWO sections in order. Output the parable FIRST, then the standard lesson.
-Separate them with exactly this line on its own: ${SECTION_DELIMITER}
+You will write THREE sections in order:
+1. TITLE (3-6 words)
+2. PARABLE (short story)
+3. STANDARD LESSON (structured content)
 
-SECTION 1 — PARABLE (write this first):
-Write a parable story in markdown using the characters above (${parableCharacters}).
+SECTION 1 — TITLE (write this first):
+Output a SHORT lesson title (3-6 words) that captures the essence of the concept.
+Then output exactly this line: ${TITLE_DELIMITER}
+
+SECTION 2 — PARABLE:
+Write a CONCISE parable story in markdown using the characters above (${parableCharacters}).
+**Target length: 250-400 words maximum** — keep it tight and impactful.
 The parable must teach the concept for Day ${newDay}.
 ${tomorrowQuestion ? `The previous lesson ended with: "${tomorrowQuestion}" — the parable should explore this theme.` : 'This is the first lesson — introduce the characters and the series theme.'}
-End with a moral and a teaser for tomorrow. Use rich, literary prose.
+End with a moral. Use rich, literary prose but stay brief.
 
 Formatting rules:
 - **Bold** all character names every time they appear (e.g. **Kael**, **Sable**)
 - Wrap all spoken dialogue in *italics* (e.g. *"The seed does not rush,"* **Sable** whispered.)
-- Use --- horizontal rules between major scene transitions
+- Use --- horizontal rules between major scene transitions (sparingly)
+- Keep dialogue short and impactful
 
 Then output exactly: ${SECTION_DELIMITER}
 
@@ -249,7 +259,8 @@ Use ** for bold markdown on section headers and key terms.
 The standard lesson MUST teach the EXACT same concept as the parable above.`;
 
   let accumulated = '';
-  let inStandard = false;
+  let currentSection: 'title' | 'parable' | 'standard' = 'title';
+  let titleText = '';
   let parableText = '';
   let standardText = '';
 
@@ -257,7 +268,7 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
     model: STREAM_MODEL,
     max_tokens: 4096,
     system,
-    messages: [{ role: 'user', content: `Write Day ${newDay}: parable first, then standard lesson.` }],
+    messages: [{ role: 'user', content: `Write Day ${newDay}: title, parable, then standard lesson.` }],
   });
 
   for await (const event of stream) {
@@ -265,33 +276,67 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
       const chunk = event.delta.text;
       accumulated += chunk;
 
-      if (!inStandard) {
-        // Check if delimiter appears in accumulated text
+      if (currentSection === 'title') {
+        // Check if title delimiter appears
+        const titleDelimIdx = accumulated.indexOf(TITLE_DELIMITER);
+        if (titleDelimIdx !== -1) {
+          // Extract title
+          const beforeTitleDelim = accumulated.slice(0, titleDelimIdx).trim();
+          const afterTitleDelim = accumulated.slice(titleDelimIdx + TITLE_DELIMITER.length);
+
+          // Emit any remaining title text
+          const remainingTitle = beforeTitleDelim.slice(titleText.length);
+          if (remainingTitle) {
+            titleText = beforeTitleDelim;
+            callbacks.onTitleDelta(remainingTitle);
+          }
+
+          currentSection = 'parable';
+          callbacks.onSectionSwitch();
+          accumulated = afterTitleDelim; // Reset accumulated for parable section
+
+          // Start emitting parable if there's text already
+          const trimmedParable = afterTitleDelim.replace(/^\n+/, '');
+          if (trimmedParable) {
+            parableText = trimmedParable;
+            callbacks.onParableDelta(trimmedParable);
+          }
+        } else {
+          // Still in title — emit delta but buffer a bit
+          const safeLen = Math.max(0, accumulated.length - TITLE_DELIMITER.length);
+          const safeText = accumulated.slice(0, safeLen);
+          const newTitle = safeText.slice(titleText.length);
+          if (newTitle) {
+            titleText = safeText;
+            callbacks.onTitleDelta(newTitle);
+          }
+        }
+      } else if (currentSection === 'parable') {
+        // Check if parable→standard delimiter appears
         const delimIdx = accumulated.indexOf(SECTION_DELIMITER);
         if (delimIdx !== -1) {
           // Split: everything before delimiter is parable, after is standard
           const beforeDelim = accumulated.slice(0, delimIdx);
           const afterDelim = accumulated.slice(delimIdx + SECTION_DELIMITER.length);
 
-          // Emit any remaining parable text that wasn't sent yet
+          // Emit any remaining parable text
           const remainingParable = beforeDelim.slice(parableText.length);
           if (remainingParable) {
             parableText = beforeDelim;
             callbacks.onParableDelta(remainingParable);
           }
 
-          inStandard = true;
+          currentSection = 'standard';
           callbacks.onSectionSwitch();
 
           // Emit any standard text that came in this chunk
-          const trimmedAfter = afterDelim.replace(/^\n+/, '');
-          if (trimmedAfter) {
-            standardText = trimmedAfter;
-            callbacks.onStandardDelta(trimmedAfter);
+          const trimmedStandard = afterDelim.replace(/^\n+/, '');
+          if (trimmedStandard) {
+            standardText = trimmedStandard;
+            callbacks.onStandardDelta(trimmedStandard);
           }
         } else {
-          // Still in parable — emit delta
-          // But buffer a bit in case delimiter is split across chunks
+          // Still in parable — emit delta but buffer a bit
           const safeLen = Math.max(0, accumulated.length - SECTION_DELIMITER.length);
           const safeText = accumulated.slice(0, safeLen);
           const newParable = safeText.slice(parableText.length);
@@ -308,8 +353,14 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
     }
   }
 
-  // Flush any remaining buffered parable text
-  if (!inStandard) {
+  // Flush any remaining buffered text
+  if (currentSection === 'title') {
+    const remaining = accumulated.slice(titleText.length);
+    if (remaining) {
+      titleText += remaining;
+      callbacks.onTitleDelta(remaining);
+    }
+  } else if (currentSection === 'parable') {
     const remaining = accumulated.slice(parableText.length);
     if (remaining) {
       parableText += remaining;
@@ -317,12 +368,11 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
     }
   }
 
-  // Clean up: if delimiter never appeared, everything is parable
-  if (!inStandard) {
-    return { parable: accumulated.trim(), standard: '' };
-  }
-
-  return { parable: parableText.trim(), standard: standardText.trim() };
+  return { 
+    title: titleText.trim(), 
+    parable: parableText.trim(), 
+    standard: standardText.trim() 
+  };
 }
 
 export interface LessonMeta {
