@@ -184,15 +184,13 @@ export default function LessonPage() {
       // Remove ?stream param (no page reload)
       setSearchParams({}, { replace: true });
 
-      // Load the lesson to get followUpQuestion
-      if (lessonId) {
-        api.get<APILesson>(`/lessons/${lessonId}`)
-          .then(r => {
-            setLesson(r.data);
-            if (user) api.post(`/lessons/${lessonId}/read`).catch(() => {});
-          })
-          .catch(console.error);
+      // Mark as read (no lesson reload needed - we have everything from stream)
+      if (user && lessonId) {
+        api.post(`/lessons/${lessonId}/read`).catch(() => {});
       }
+
+      // Increment totalLessons since we just created a new one
+      setTotalLessons(prev => prev + 1);
     });
 
     es.addEventListener('error', () => {
