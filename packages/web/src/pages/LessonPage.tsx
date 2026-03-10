@@ -181,16 +181,17 @@ export default function LessonPage() {
       es.close();
       esRef.current = null;
 
-      // Remove ?stream param (no page reload)
-      setSearchParams({}, { replace: true });
-
-      // Mark as read (no lesson reload needed - we have everything from stream)
+      // Mark as read
       if (user && lessonId) {
         api.post(`/lessons/${lessonId}/read`).catch(() => {});
       }
 
       // Increment totalLessons since we just created a new one
       setTotalLessons(prev => prev + 1);
+
+      // Don't remove ?stream=true param or set lesson state
+      // Any state/URL change would trigger re-render and lose scroll position
+      // The streaming UI with streamDone=true shows everything correctly
     });
 
     es.addEventListener('error', () => {
