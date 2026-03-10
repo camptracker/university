@@ -131,7 +131,8 @@ export default function LessonPage() {
 
     const currentSort = lesson?.sortOrder || Number(sortOrder);
     if (currentSort === 1) {
-      setPrevQuestion(null);
+      // For Day 1, use the series anchor question
+      setPrevQuestion(series.anchor);
       return;
     }
 
