@@ -37,8 +37,21 @@ export default function LessonPage() {
   const [waitingForGen, setWaitingForGen] = useState(false);
   const esRef = useRef<EventSource | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const hasScrolledRef = useRef(false);
 
-  useEffect(() => { window.scrollTo(0, 0); }, [seriesKey, sortOrder]);
+  useEffect(() => { 
+    window.scrollTo(0, 0); 
+    hasScrolledRef.current = false;
+  }, [seriesKey, sortOrder]);
+
+  // Auto-scroll below image when streaming starts
+  useEffect(() => {
+    if (isStreaming && streamParable && !hasScrolledRef.current && headerRef.current) {
+      headerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      hasScrolledRef.current = true;
+    }
+  }, [isStreaming, streamParable]);
 
   // Load series info (needed for both modes)
   useEffect(() => {
@@ -236,7 +249,7 @@ export default function LessonPage() {
           )}
         </div>
 
-        <header className="lesson-header">
+        <header className="lesson-header" ref={headerRef}>
           <span className="lesson-day-badge">Day {sortNum}</span>
           {streamTitle && <h1 style={{ marginTop: '0.5rem' }}>{streamTitle}</h1>}
           {!streamDone && (
