@@ -1,13 +1,12 @@
 /**
  * ParableRenderer — renders parable markdown with character colors
  *
- * Uses ReactMarkdown custom components to:
- * - Color **character names** in bold
- * - Color *dialogue* in italics with the last mentioned character's color
+ * Backend format: *"dialogue"* **Character** said.
+ * Strategy: Preprocess text to map dialogue→character, then color both during render
  */
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { Components } from 'react-markdown';
 
 interface Props {
@@ -25,8 +24,6 @@ const DEFAULT_COLORS: Record<string, string> = {
 };
 
 export default function ParableRenderer({ text, characters = [] }: Props) {
-  const lastCharColor = useRef<string>('#d4a843');
-
   // Build character color map
   const charColors = useMemo(() => {
     const map = new Map<string, string>();
@@ -45,6 +42,25 @@ export default function ParableRenderer({ text, characters = [] }: Props) {
     return map;
   }, [characters]);
 
+  // Preprocess: find patterns like *"dialogue"* **Character** and map dialogue→color
+  const dialogueColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    
+    // Pattern: *"..."* followed by **Name**
+    // Match: *"text"* **Character**
+    const pattern = /\*"([^"]+)"\*\s*\*\*(\w+)\*\*/g;
+    let match;
+    
+    while ((match = pattern.exec(text)) !== null) {
+      const dialogue = match[1]; // the quote content
+      const charName = match[2].toLowerCase();
+      const color = charColors.get(charName) || '#d4a843';
+      map.set(dialogue, color);
+    }
+    
+    return map;
+  }, [text, charColors]);
+
   // Custom markdown components
   const components: Components = useMemo(() => ({
     // Handle bold text (character names)
@@ -53,11 +69,9 @@ export default function ParableRenderer({ text, characters = [] }: Props) {
       const lowerText = text.toLowerCase();
       
       // Check if this is a character name
-      for (const [name, color] of charColors.entries()) {
-        if (lowerText === name) {
-          lastCharColor.current = color;
-          return <strong style={{ color }}>{children}</strong>;
-        }
+      const color = charColors.get(lowerText);
+      if (color) {
+        return <strong style={{ color }}>{children}</strong>;
       }
       
       return <strong>{children}</strong>;
@@ -67,14 +81,18 @@ export default function ParableRenderer({ text, characters = [] }: Props) {
     em: ({ children }) => {
       const text = String(children);
       
-      // If it looks like dialogue (starts with quote), use last character's color
+      // If it's dialogue, look up the color from our map
       if (text.startsWith('"') || text.startsWith('"')) {
-        return <em style={{ color: lastCharColor.current }}>{children}</em>;
+        const dialogue = text.replace(/^[""]|[""]$/g, ''); // strip quotes
+        const color = dialogueColorMap.get(dialogue);
+        if (color) {
+          return <em style={{ color }}>{children}</em>;
+        }
       }
       
       return <em>{children}</em>;
     },
-  }), [charColors]);
+  }), [charColors, dialogueColorMap]);
 
   return (
     <div className="lesson-content parable">
