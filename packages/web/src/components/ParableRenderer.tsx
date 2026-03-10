@@ -13,6 +13,7 @@ interface Props {
   text: string;
   characters?: { name: string; color?: string }[];
   answeringQuestion?: string | null;
+  followUpQuestion?: string;
 }
 
 // Default character color mapping
@@ -24,7 +25,7 @@ const DEFAULT_COLORS: Record<string, string> = {
   maren: '#9b59b6',     // Purple
 };
 
-export default function ParableRenderer({ text, characters = [], answeringQuestion }: Props) {
+export default function ParableRenderer({ text, characters = [], answeringQuestion, followUpQuestion }: Props) {
   // Build character color map
   const charColors = useMemo(() => {
     const map = new Map<string, string>();
@@ -109,6 +110,12 @@ export default function ParableRenderer({ text, characters = [], answeringQuesti
       >
         {text}
       </ReactMarkdown>
+      {followUpQuestion && (
+        <div className="parable-tomorrow">
+          <p className="parable-tomorrow-label">Tomorrow's Question:</p>
+          <p className="parable-tomorrow-question">{followUpQuestion}</p>
+        </div>
+      )}
     </div>
   );
 }

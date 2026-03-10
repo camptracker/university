@@ -8,16 +8,12 @@
  */
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import StreamingText from '../components/StreamingText.js';
 import ParableRenderer from '../components/ParableRenderer.js';
 import api, { type APILesson, type APISeries, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
 const API_BASE = (api.defaults.baseURL || '').replace(/\/api$/, '');
-
-type Tab = 'parable' | 'content';
 
 export default function LessonPage() {
   const { seriesKey, sortOrder } = useParams<{ seriesKey: string; sortOrder: string }>();
@@ -28,7 +24,6 @@ export default function LessonPage() {
   const [lesson, setLesson] = useState<APILesson | null>(null);
   const [prevQuestion, setPrevQuestion] = useState<string | null>(null);
   const [totalLessons, setTotalLessons] = useState(0);
-  const [tab, setTab] = useState<Tab>('parable');
   const [loading, setLoading] = useState(true);
 
   // Streaming state
@@ -151,8 +146,6 @@ export default function LessonPage() {
     es.addEventListener('phase', (e) => {
       const { phase } = JSON.parse(e.data);
       setStreamPhase(phase);
-      // Title streams first, then parable (visible), then standard
-      if (phase === 'parable') setTab('parable');
     });
 
     es.addEventListener('delta', (e) => {
@@ -172,9 +165,14 @@ export default function LessonPage() {
       // Remove ?stream param (no page reload)
       setSearchParams({}, { replace: true });
 
-      // Mark as read if logged in
-      if (user && lessonId) {
-        api.post(`/lessons/${lessonId}/read`).catch(() => {});
+      // Load the lesson to get followUpQuestion
+      if (lessonId) {
+        api.get<APILesson>(`/lessons/${lessonId}`)
+          .then(r => {
+            setLesson(r.data);
+            if (user) api.post(`/lessons/${lessonId}/read`).catch(() => {});
+          })
+          .catch(console.error);
       }
     });
 
@@ -210,7 +208,7 @@ export default function LessonPage() {
   const sortNum = Number(sortOrder);
 
   // Streaming mode render
-  if (isStreaming || (streamStandard && !lesson)) {
+  if (isStreaming || (streamParable && !lesson)) {
     const phaseLabel: Record<string, string> = {
       title: '✨ Creating title...',
       standard: '✍️ Preparing lesson...',
@@ -248,56 +246,34 @@ export default function LessonPage() {
           )}
         </header>
 
-        <div className="toggle-container">
-          <button
-            className={`toggle-btn ${tab === 'parable' ? 'active' : ''}`}
-            onClick={() => setTab('parable')}
-          >🏰 Parable</button>
-          <button
-            className={`toggle-btn ${tab === 'content' ? 'active' : ''}`}
-            onClick={() => setTab('content')}
-            disabled={!streamStandard}
-          >📖 Lesson</button>
-        </div>
-
-        <article className={`lesson-content ${tab}`} key={tab}>
-          {tab === 'parable' && (
-            <>
-              {prevQuestion && (
-                <div className="parable-context">
-                  <p className="parable-context-label">Today's Question:</p>
-                  <p className="parable-context-question">{prevQuestion}</p>
-                </div>
-              )}
-              {streamParable ? (
-                streamDone ? (
-                  <ParableRenderer 
-                    text={streamParable} 
-                    characters={series?.characters}
-                  />
-                ) : (
-                  <div className="lesson-content parable">
-                    <StreamingText text={streamParable} className="" />
-                  </div>
-                )
-              ) : streamPhase !== 'error' && (
-                <div style={{ padding: '1rem 0' }}>
-                  <div className="skeleton-line skeleton-long" />
-                  <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
-                  <div className="skeleton-line skeleton-short" style={{ marginTop: '0.75rem' }} />
-                  <div className="skeleton-line skeleton-long" style={{ marginTop: '1rem' }} />
-                  <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
-                  <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
-                </div>
-              )}
-            </>
+        <article className="lesson-content parable">
+          {prevQuestion && (
+            <div className="parable-context">
+              <p className="parable-context-label">Today's Question:</p>
+              <p className="parable-context-question">{prevQuestion}</p>
+            </div>
           )}
-          {tab === 'content' && streamStandard && (
+          {streamParable ? (
             streamDone ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamStandard}</ReactMarkdown>
+              <ParableRenderer 
+                text={streamParable} 
+                characters={series?.characters}
+                followUpQuestion={lesson?.followUpQuestion}
+              />
             ) : (
-              <StreamingText text={streamStandard} className="content" />
+              <div className="lesson-content parable">
+                <StreamingText text={streamParable} className="" />
+              </div>
             )
+          ) : streamPhase !== 'error' && (
+            <div style={{ padding: '1rem 0' }}>
+              <div className="skeleton-line skeleton-long" />
+              <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+              <div className="skeleton-line skeleton-short" style={{ marginTop: '0.75rem' }} />
+              <div className="skeleton-line skeleton-long" style={{ marginTop: '1rem' }} />
+              <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+              <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+            </div>
           )}
         </article>
 
@@ -340,11 +316,6 @@ export default function LessonPage() {
           <p style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 600 }}>⏳ Generation in progress — waiting for lesson...</p>
         </header>
 
-        <div className="toggle-container">
-          <button className="toggle-btn active">🏰 Parable</button>
-          <button className="toggle-btn" disabled>📖 Lesson</button>
-        </div>
-
         <div style={{ padding: '1rem 0' }}>
           <div className="skeleton-line skeleton-long" />
           <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
@@ -375,11 +346,6 @@ export default function LessonPage() {
         <header className="lesson-header">
           <span className="lesson-day-badge">Day {sortNum}</span>
         </header>
-
-        <div className="toggle-container">
-          <button className="toggle-btn active">🏰 Parable</button>
-          <button className="toggle-btn">📖 Lesson</button>
-        </div>
 
         <div style={{ padding: '1rem 0' }}>
           <div className="skeleton-line skeleton-long" />
@@ -414,27 +380,14 @@ export default function LessonPage() {
         <h1>{lesson.title}</h1>
       </header>
 
-      <div className="toggle-container">
-        {lesson.parable && (
-          <button className={`toggle-btn ${tab === 'parable' ? 'active' : ''}`} onClick={() => setTab('parable')}>🏰 Parable</button>
-        )}
-        {lesson.content && (
-          <button className={`toggle-btn ${tab === 'content' ? 'active' : ''}`} onClick={() => setTab('content')}>📖 Lesson</button>
-        )}
-      </div>
-
-      <article className={`lesson-content ${tab}`} key={tab}>
-        {tab === 'parable' && lesson.parable && (
-          <ParableRenderer 
-            text={lesson.parable} 
-            characters={series?.characters} 
-            answeringQuestion={prevQuestion}
-          />
-        )}
-        {tab === 'content' && lesson.content && (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
-        )}
-      </article>
+      {lesson.parable && (
+        <ParableRenderer 
+          text={lesson.parable} 
+          characters={series?.characters} 
+          answeringQuestion={prevQuestion}
+          followUpQuestion={lesson.followUpQuestion}
+        />
+      )}
 
       <nav className="bottom-nav">
         {sortNum > 1 ? (

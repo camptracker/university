@@ -304,6 +304,31 @@ body {
   line-height: 1.6;
 }
 
+/* Parable tomorrow question (footer) */
+.parable-tomorrow {
+  margin-top: 2.5rem;
+  padding: 1.25rem;
+  background: var(--gold-bg);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+}
+.parable-tomorrow-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.parable-tomorrow-question {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.6;
+}
+
 .lesson-content h1, .lesson-content h2, .lesson-content h3 { color: var(--gold); margin: 1.5rem 0 0.5rem; }
 .lesson-content p { margin-bottom: 1rem; }
 .lesson-content strong { color: var(--text-strong); }
