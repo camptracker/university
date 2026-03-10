@@ -32,6 +32,7 @@ export default function LessonPage() {
   const [streamTitle, setStreamTitle] = useState('');
   const [streamStandard, setStreamStandard] = useState('');
   const [streamParable, setStreamParable] = useState('');
+  const [streamFollowUpQuestion, setStreamFollowUpQuestion] = useState<string>('');
   const [streamImage, setStreamImage] = useState<string | null>(null);
   const [streamDone, setStreamDone] = useState(false);
   const [waitingForGen, setWaitingForGen] = useState(false);
@@ -168,6 +169,11 @@ export default function LessonPage() {
       if (section === 'parable') setStreamParable(prev => prev + text);
     });
 
+    es.addEventListener('followUpQuestion', (e) => {
+      const { text } = JSON.parse(e.data);
+      setStreamFollowUpQuestion(text);
+    });
+
     es.addEventListener('done', (e) => {
       const { image, lessonId } = JSON.parse(e.data);
       if (image) setStreamImage(image);
@@ -283,11 +289,11 @@ export default function LessonPage() {
             )}
           </div>
 
-          {/* Follow-up question - appears when done */}
-          {streamDone && lesson?.followUpQuestion && (
+          {/* Follow-up question - appears when received from stream */}
+          {streamFollowUpQuestion && (
             <div className="parable-tomorrow">
               <p className="parable-tomorrow-label">Tomorrow's Question:</p>
-              <p className="parable-tomorrow-question">{lesson.followUpQuestion}</p>
+              <p className="parable-tomorrow-question">{streamFollowUpQuestion}</p>
             </div>
           )}
         </article>

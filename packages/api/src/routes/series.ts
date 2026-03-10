@@ -205,6 +205,9 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       existingCharacters: series.characters || [],
     });
 
+    // Send followUpQuestion immediately
+    safeSend('followUpQuestion', { text: meta.followUpQuestion });
+
     // Phase 4: Generate image
     safeSend('phase', { phase: 'image' });
     let imageUrl: string | undefined;
