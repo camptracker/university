@@ -189,7 +189,7 @@ export interface StreamCallbacks {
   onTitleDelta: (text: string) => void;
   onParableDelta: (text: string) => void;
   onStandardDelta: (text: string) => void;
-  onSectionSwitch: () => void; // called when switching from parable to standard
+  onSectionSwitch: (toSection: 'parable' | 'standard') => void;
 }
 
 export async function streamLesson(
@@ -232,7 +232,7 @@ Formatting rules:
 
 Then output exactly: ${SECTION_DELIMITER}
 
-SECTION 2 — STANDARD LESSON (write this second):
+SECTION 3 — STANDARD LESSON (write this last):
 Follow this format exactly:
 
 Day ${newDay}: [Title]
@@ -292,7 +292,7 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
           }
 
           currentSection = 'parable';
-          callbacks.onSectionSwitch();
+          callbacks.onSectionSwitch('parable');
           accumulated = afterTitleDelim; // Reset accumulated for parable section
 
           // Start emitting parable if there's text already
@@ -302,8 +302,9 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
             callbacks.onParableDelta(trimmedParable);
           }
         } else {
-          // Still in title — emit delta but buffer a bit
-          const safeLen = Math.max(0, accumulated.length - TITLE_DELIMITER.length);
+          // Still in title — emit delta but keep small buffer (10 chars)
+          const bufferSize = 10;
+          const safeLen = Math.max(0, accumulated.length - bufferSize);
           const safeText = accumulated.slice(0, safeLen);
           const newTitle = safeText.slice(titleText.length);
           if (newTitle) {
@@ -327,7 +328,7 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
           }
 
           currentSection = 'standard';
-          callbacks.onSectionSwitch();
+          callbacks.onSectionSwitch('standard');
 
           // Emit any standard text that came in this chunk
           const trimmedStandard = afterDelim.replace(/^\n+/, '');
@@ -336,8 +337,9 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
             callbacks.onStandardDelta(trimmedStandard);
           }
         } else {
-          // Still in parable — emit delta but buffer a bit
-          const safeLen = Math.max(0, accumulated.length - SECTION_DELIMITER.length);
+          // Still in parable — emit delta but keep small buffer (20 chars)
+          const bufferSize = 20;
+          const safeLen = Math.max(0, accumulated.length - bufferSize);
           const safeText = accumulated.slice(0, safeLen);
           const newParable = safeText.slice(parableText.length);
           if (newParable) {

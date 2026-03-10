@@ -190,12 +190,8 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       onTitleDelta: (text) => safeSend('delta', { section: 'title', text }),
       onParableDelta: (text) => safeSend('delta', { section: 'parable', text }),
       onStandardDelta: (text) => safeSend('delta', { section: 'standard', text }),
-      onSectionSwitch: () => {
-        if (!parableContent) {
-          safeSend('phase', { phase: 'parable' });
-        } else {
-          safeSend('phase', { phase: 'standard' });
-        }
+      onSectionSwitch: (toSection) => {
+        safeSend('phase', { phase: toSection });
       },
     });
 
