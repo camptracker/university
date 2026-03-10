@@ -253,26 +253,28 @@ export default function LessonPage() {
               <p className="parable-context-question">{prevQuestion}</p>
             </div>
           )}
-          {streamParable ? (
-            streamDone ? (
-              <ParableRenderer 
-                text={streamParable} 
-                characters={series?.characters}
-                followUpQuestion={lesson?.followUpQuestion}
-              />
-            ) : (
-              <div className="lesson-content parable">
-                <StreamingText text={streamParable} className="" />
+          
+          {/* Main parable content - never unmounts */}
+          <div className="parable-main">
+            {streamParable ? (
+              <StreamingText text={streamParable} className="" />
+            ) : streamPhase !== 'error' && (
+              <div style={{ padding: '1rem 0' }}>
+                <div className="skeleton-line skeleton-long" />
+                <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+                <div className="skeleton-line skeleton-short" style={{ marginTop: '0.75rem' }} />
+                <div className="skeleton-line skeleton-long" style={{ marginTop: '1rem' }} />
+                <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+                <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
               </div>
-            )
-          ) : streamPhase !== 'error' && (
-            <div style={{ padding: '1rem 0' }}>
-              <div className="skeleton-line skeleton-long" />
-              <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
-              <div className="skeleton-line skeleton-short" style={{ marginTop: '0.75rem' }} />
-              <div className="skeleton-line skeleton-long" style={{ marginTop: '1rem' }} />
-              <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
-              <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+            )}
+          </div>
+
+          {/* Follow-up question - appears when done */}
+          {streamDone && lesson?.followUpQuestion && (
+            <div className="parable-tomorrow">
+              <p className="parable-tomorrow-label">Tomorrow's Question:</p>
+              <p className="parable-tomorrow-question">{lesson.followUpQuestion}</p>
             </div>
           )}
         </article>
