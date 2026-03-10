@@ -163,29 +163,19 @@ export default function LessonPage() {
     });
 
     es.addEventListener('done', (e) => {
-      const { image } = JSON.parse(e.data);
+      const { image, lessonId } = JSON.parse(e.data);
       if (image) setStreamImage(image);
       setStreamDone(true);
       es.close();
       esRef.current = null;
 
-      // Remove ?stream param and load the real lesson
+      // Remove ?stream param (no page reload)
       setSearchParams({}, { replace: true });
 
-      // Reload lesson from DB
-      api.get<APILessonsResponse>(`/series/${series._id}/lessons?page=1`)
-        .then(r => {
-          setTotalLessons(r.data.total);
-          const found = r.data.lessons.find(l => l.sortOrder === Number(sortOrder));
-          if (!found) return;
-          return api.get<APILesson>(`/lessons/${found._id}`);
-        })
-        .then(r => {
-          if (!r) return;
-          setLesson(r.data);
-          if (user) api.post(`/lessons/${r.data._id}/read`).catch(() => {});
-        })
-        .catch(console.error);
+      // Mark as read if logged in
+      if (user && lessonId) {
+        api.post(`/lessons/${lessonId}/read`).catch(() => {});
+      }
     });
 
     es.addEventListener('error', () => {
@@ -270,7 +260,7 @@ export default function LessonPage() {
           >📖 Lesson</button>
         </div>
 
-        <article>
+        <article className={`lesson-content ${tab}`} key={tab}>
           {tab === 'parable' && (
             <>
               {prevQuestion && (
@@ -280,19 +270,51 @@ export default function LessonPage() {
                 </div>
               )}
               {streamParable ? (
-                <StreamingText text={streamParable} className="parable" />
+                streamDone ? (
+                  <ParableRenderer 
+                    text={streamParable} 
+                    characters={series?.characters}
+                  />
+                ) : (
+                  <div className="lesson-content parable">
+                    <StreamingText text={streamParable} className="" />
+                  </div>
+                )
               ) : streamPhase !== 'error' && (
-                <div style={{ padding: '2rem 0' }}>
+                <div style={{ padding: '1rem 0' }}>
                   <div className="skeleton-line skeleton-long" />
-                  <div className="skeleton-line skeleton-short" style={{ marginTop: '0.5rem' }} />
+                  <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+                  <div className="skeleton-line skeleton-short" style={{ marginTop: '0.75rem' }} />
+                  <div className="skeleton-line skeleton-long" style={{ marginTop: '1rem' }} />
+                  <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+                  <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
                 </div>
               )}
             </>
           )}
           {tab === 'content' && streamStandard && (
-            <StreamingText text={streamStandard} className="content" />
+            streamDone ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamStandard}</ReactMarkdown>
+            ) : (
+              <StreamingText text={streamStandard} className="content" />
+            )
           )}
         </article>
+
+        {streamDone && (
+          <nav className="bottom-nav">
+            {sortNum > 1 ? (
+              <Link to={`/${series!.key}/lesson/${sortNum - 1}`} className="nav-link">← Day {sortNum - 1}</Link>
+            ) : <span />}
+            {user?.role === 'admin' && (
+              <button
+                className="nav-link"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', color: 'var(--gold)' }}
+                onClick={() => navigate(`/${series!.key}/lesson/${sortNum + 1}?stream=true`)}
+              >Generate Day {sortNum + 1} →</button>
+            )}
+          </nav>
+        )}
       </div>
     );
   }
@@ -308,21 +330,67 @@ export default function LessonPage() {
           <span className="breadcrumb-sep">›</span>
           <span>Day {sortNum}</span>
         </nav>
+
+        <div className="lesson-hero">
+          <div className="image-placeholder" />
+        </div>
+
         <header className="lesson-header">
           <span className="lesson-day-badge">Day {sortNum}</span>
           <p style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 600 }}>⏳ Generation in progress — waiting for lesson...</p>
         </header>
-        <div style={{ padding: '2rem 0' }}>
+
+        <div className="toggle-container">
+          <button className="toggle-btn active">🏰 Parable</button>
+          <button className="toggle-btn" disabled>📖 Lesson</button>
+        </div>
+
+        <div style={{ padding: '1rem 0' }}>
           <div className="skeleton-line skeleton-long" />
-          <div className="skeleton-line skeleton-short" style={{ marginTop: '0.5rem' }} />
-          <div className="skeleton-line skeleton-long" style={{ marginTop: '0.5rem' }} />
+          <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+          <div className="skeleton-line skeleton-short" style={{ marginTop: '0.75rem' }} />
+          <div className="skeleton-line skeleton-long" style={{ marginTop: '1rem' }} />
+          <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
         </div>
       </div>
     );
   }
 
-  // Normal mode render
-  if (loading) return <div className="container"><div className="loading">Loading lesson...</div></div>;
+  // Normal mode render (loading state)
+  if (loading) {
+    return (
+      <div className="container">
+        <nav className="breadcrumb">
+          <Link to="/" className="nav-link">Home</Link>
+          <span className="breadcrumb-sep">›</span>
+          {series && <Link to={`/${series.key}`} className="nav-link">{series.title}</Link>}
+          <span className="breadcrumb-sep">›</span>
+          <span>Day {sortNum}</span>
+        </nav>
+
+        <div className="lesson-hero">
+          <div className="image-placeholder" />
+        </div>
+
+        <header className="lesson-header">
+          <span className="lesson-day-badge">Day {sortNum}</span>
+        </header>
+
+        <div className="toggle-container">
+          <button className="toggle-btn active">🏰 Parable</button>
+          <button className="toggle-btn">📖 Lesson</button>
+        </div>
+
+        <div style={{ padding: '1rem 0' }}>
+          <div className="skeleton-line skeleton-long" />
+          <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+          <div className="skeleton-line skeleton-short" style={{ marginTop: '0.75rem' }} />
+          <div className="skeleton-line skeleton-long" style={{ marginTop: '1rem' }} />
+          <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
+        </div>
+      </div>
+    );
+  }
   if (!lesson || !series) return <div className="container"><p>Lesson not found.</p><Link to="/" className="nav-link">← Home</Link></div>;
 
   return (
