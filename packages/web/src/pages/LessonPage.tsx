@@ -167,18 +167,45 @@ export default function LessonPage() {
       .catch(console.error);
   }, [lesson, series, sortOrder]);
 
-  // Streaming mode: open SSE
+  // Streaming mode: open SSE (wait for previous lesson to exist first if not Day 1)
   useEffect(() => {
     if (!isStreaming || !series) return;
     setLoading(false);
 
+    const currentDay = Number(sortOrder);
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    const es = new EventSource(`${API_BASE}/api/series/${series._id}/generate-stream?token=${token}`);
-    esRef.current = es;
+    // For Day 2+, verify previous lesson exists before starting stream
+    if (currentDay > 1) {
+      api.get<APILessonsResponse>(`/series/${series._id}/lessons?page=1`)
+        .then(r => {
+          const prevLesson = r.data.lessons.find(l => l.sortOrder === currentDay - 1);
+          if (!prevLesson) {
+            // Previous lesson doesn't exist yet, wait a moment and retry
+            console.log(`Waiting for Day ${currentDay - 1} to be saved...`);
+            setTimeout(() => {
+              // Trigger re-fetch by updating a dummy state
+              setLoading(true);
+              setLoading(false);
+            }, 1000);
+            return;
+          }
+          // Previous lesson exists, start streaming
+          startStream();
+        })
+        .catch(console.error);
+    } else {
+      // Day 1, no previous lesson needed
+      startStream();
+    }
 
-    es.addEventListener('phase', (e) => {
+    function startStream() {
+      if (!series) return; // TypeScript guard
+      const es = new EventSource(`${API_BASE}/api/series/${series._id}/generate-stream?token=${token}`);
+      esRef.current = es;
+
+      es.addEventListener('phase', (e) => {
       const { phase } = JSON.parse(e.data);
       setStreamPhase(phase);
     });
@@ -239,10 +266,11 @@ export default function LessonPage() {
           } catch { /* ignore */ }
         }, 2000);
       }
-    });
+      });
+    }
 
-    return () => { es.close(); };
-  }, [isStreaming, series]);
+    return () => { if (esRef.current) esRef.current.close(); };
+  }, [isStreaming, series, sortOrder, user]);
 
   const sortNum = Number(sortOrder);
 
