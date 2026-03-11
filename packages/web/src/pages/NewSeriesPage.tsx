@@ -81,54 +81,49 @@ export default function NewSeriesPage() {
         <p className="subtitle">Generate an AI-powered daily learning series on any topic</p>
       </header>
 
-      {/* Recommended series */}
-      <div className="recommended-section" style={{ marginBottom: '3rem' }}>
-        <h2 className="section-title">✨ Recommended Topics</h2>
-        <p className="section-subtitle">Start with a curated series or create your own below</p>
-        <div className="series-grid">
+      {/* Custom topic form */}
+      <form className="new-series-form" onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="topic" className="form-label">What do you want to learn?</label>
+          <input
+            id="topic"
+            type="text"
+            className="form-input"
+            placeholder="e.g. Stoic philosophy, Machine learning, Personal finance..."
+            value={topic}
+            onChange={e => setTopic(e.target.value)}
+            disabled={loading}
+            maxLength={200}
+          />
+          <p className="form-hint">Be specific — your topic will be turned into a series of daily stories and lessons.</p>
+        </div>
+
+        {error && <p className="form-error">{error}</p>}
+
+        <button type="submit" className="btn-primary" disabled={loading || !topic.trim()}>
+          {loading ? 'Generating series...' : 'Create Series'}
+        </button>
+
+        {loading && (
+          <p className="form-hint">This may take 30–60 seconds while AI generates your first lesson.</p>
+        )}
+      </form>
+
+      {/* Recommended topics */}
+      <div style={{ marginTop: '2rem' }}>
+        <p className="form-hint" style={{ marginBottom: '0.75rem' }}>Or try a suggested topic:</p>
+        <div className="topic-tags">
           {RECOMMENDED_SERIES.map(rec => (
             <button
               key={rec.topic}
-              className="series-card series-card-recommended"
+              className="topic-tag"
               onClick={() => handleCreateSeries(rec.topic)}
               disabled={loading}
             >
-              <h2 className="series-card-name">{rec.emoji} {rec.title}</h2>
-              <p className="series-card-theme">{rec.topic}</p>
+              {rec.emoji} {rec.title}
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Custom topic form */}
-      <div style={{ marginTop: '3rem' }}>
-        <h2 className="section-title">🎨 Create Your Own</h2>
-        <form className="new-series-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="topic" className="form-label">What do you want to learn?</label>
-            <input
-              id="topic"
-              type="text"
-              className="form-input"
-              placeholder="e.g. Stoic philosophy, Machine learning, Personal finance..."
-              value={topic}
-              onChange={e => setTopic(e.target.value)}
-              disabled={loading}
-              maxLength={200}
-            />
-            <p className="form-hint">Be specific — your topic will be turned into a series of daily stories and lessons.</p>
-          </div>
-
-          {error && <p className="form-error">{error}</p>}
-
-          <button type="submit" className="btn-primary" disabled={loading || !topic.trim()}>
-            {loading ? 'Generating series...' : 'Create Series'}
-          </button>
-
-          {loading && (
-            <p className="form-hint">This may take 30–60 seconds while AI generates your first lesson.</p>
-          )}
-        </form>
       </div>
     </div>
   );
