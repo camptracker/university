@@ -78,7 +78,6 @@ export default function NewSeriesPage() {
     <div className="container">
       <header className="home-header">
         <h1>Create New Series</h1>
-        <p className="subtitle">Generate an AI-powered daily learning series on any topic</p>
       </header>
 
       {/* Custom topic form */}
@@ -95,7 +94,6 @@ export default function NewSeriesPage() {
             disabled={loading}
             maxLength={200}
           />
-          <p className="form-hint">Be specific — your topic will be turned into a series of daily stories and lessons.</p>
         </div>
 
         {error && <p className="form-error">{error}</p>}
