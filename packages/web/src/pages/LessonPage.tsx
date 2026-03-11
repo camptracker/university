@@ -334,6 +334,13 @@ export default function LessonPage() {
           )}
         </article>
 
+        {/* Image placeholder while generating */}
+        {streamPhase === 'image' && !streamImage && (
+          <div className="lesson-hero">
+            <div className="image-placeholder" />
+          </div>
+        )}
+
         {/* Image appears at bottom after generation */}
         {streamImage && (
           <div className="lesson-hero">
