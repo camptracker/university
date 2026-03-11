@@ -393,23 +393,18 @@ body {
 
 /* Generate next button */
 .generate-next-btn {
-  background: var(--gold-bg);
-  border: 2px solid var(--gold);
+  background: none;
+  border: none;
   cursor: pointer;
-  padding: 0.75rem 1.5rem;
+  padding: 0;
   font: inherit;
-  font-weight: 600;
   color: var(--gold);
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(212, 168, 67, 0.2);
+  text-decoration: none;
+  font-size: 0.9rem;
 }
 
 .generate-next-btn:hover {
-  background: var(--gold);
-  color: #111;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(212, 168, 67, 0.4);
+  text-decoration: underline;
 }
 
 .series-nav {
