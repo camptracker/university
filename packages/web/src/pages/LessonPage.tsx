@@ -247,14 +247,6 @@ export default function LessonPage() {
           <span>Day {sortNum}</span>
         </nav>
 
-        <div className="lesson-hero">
-          {streamImage ? (
-            <img src={streamImage} alt="Lesson" />
-          ) : (
-            <div className="image-placeholder" />
-          )}
-        </div>
-
         <header className="lesson-header" ref={headerRef}>
           <span className="lesson-day-badge">Day {sortNum}</span>
           {streamTitle && <h1 style={{ marginTop: '0.5rem' }}>{streamTitle}</h1>}
@@ -298,6 +290,13 @@ export default function LessonPage() {
           )}
         </article>
 
+        {/* Image appears at bottom after generation */}
+        {streamImage && (
+          <div className="lesson-hero">
+            <img src={streamImage} alt="Lesson" />
+          </div>
+        )}
+
         {streamDone && (
           <nav className="bottom-nav">
             {sortNum > 1 ? (
@@ -328,10 +327,6 @@ export default function LessonPage() {
           <span>Day {sortNum}</span>
         </nav>
 
-        <div className="lesson-hero">
-          <div className="image-placeholder" />
-        </div>
-
         <header className="lesson-header">
           <span className="lesson-day-badge">Day {sortNum}</span>
           <p style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 600 }}>⏳ Generation in progress — waiting for lesson...</p>
@@ -360,10 +355,6 @@ export default function LessonPage() {
           <span>Day {sortNum}</span>
         </nav>
 
-        <div className="lesson-hero">
-          <div className="image-placeholder" />
-        </div>
-
         <header className="lesson-header">
           <span className="lesson-day-badge">Day {sortNum}</span>
         </header>
@@ -390,12 +381,6 @@ export default function LessonPage() {
         <span>Day {sortNum}</span>
       </nav>
 
-      {lesson.image && (
-        <div className="lesson-hero">
-          <img src={lesson.image} alt={lesson.title} />
-        </div>
-      )}
-
       <header className="lesson-header">
         <span className="lesson-day-badge">Day {sortNum}</span>
         <h1>{lesson.title}</h1>
@@ -407,6 +392,12 @@ export default function LessonPage() {
           answeringQuestion={prevQuestion}
           followUpQuestion={lesson.followUpQuestion}
         />
+      )}
+
+      {lesson.image && (
+        <div className="lesson-hero">
+          <img src={lesson.image} alt={lesson.title} />
+        </div>
       )}
 
       <nav className="bottom-nav">
