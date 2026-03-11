@@ -43,6 +43,7 @@ router.get('/popular', async (_req: Request, res: Response) => {
 });
 
 // GET /api/series/demo-stream — pick a random lesson and mock-stream it via SSE (admin only)
+// Matches the real generate-stream format for realistic demo
 router.get('/demo-stream', async (req: Request, res: Response) => {
   const token = req.query.token as string;
   if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }
@@ -65,6 +66,7 @@ router.get('/demo-stream', async (req: Request, res: Response) => {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
   });
 
   const send = (event: string, data: unknown) => {
@@ -84,16 +86,29 @@ router.get('/demo-stream', async (req: Request, res: Response) => {
     });
   };
 
+  // Phase 1: Stream title (matches real format)
+  send('phase', { phase: 'title' });
+  await streamWords('title', lesson.title);
+
+  // Phase 2: Stream parable
   send('phase', { phase: 'parable' });
   await streamWords('parable', lesson.parable!);
 
+  // Phase 3: Stream standard (backend still generates it even though frontend doesn't show it)
   send('phase', { phase: 'standard' });
   await streamWords('standard', lesson.content!);
 
+  // Phase 4: Send followUpQuestion (matches real format)
+  send('phase', { phase: 'meta' });
+  await new Promise(r => setTimeout(r, 200));
+  send('followUpQuestion', { text: lesson.followUpQuestion });
+
+  // Phase 5: Image generation
   send('phase', { phase: 'image' });
   await new Promise(r => setTimeout(r, 500));
 
-  send('done', { image: lesson.image || null });
+  // Done (matches real format)
+  send('done', { lessonId: String(lesson._id), image: lesson.image || null });
   res.end();
 });
 
