@@ -260,7 +260,7 @@ body {
 
 /* Lesson hero image */
 .lesson-hero {
-  margin: 3rem 0 2rem;
+  margin: 3rem 0 0;
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid var(--border);
