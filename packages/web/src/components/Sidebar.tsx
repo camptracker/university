@@ -31,7 +31,15 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const currentKey = location.pathname.split('/')[1] || '';
 
   useEffect(() => {
-    api.get<APISeries[]>('/series').then(r => setSeriesList(r.data)).catch(() => {});
+    api.get<APISeries[]>('/series')
+      .then(r => {
+        // Sort by createdAt descending (newest first)
+        const sorted = [...r.data].sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setSeriesList(sorted);
+      })
+      .catch(() => {});
   }, []);
 
   return (
