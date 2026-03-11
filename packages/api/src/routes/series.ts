@@ -154,6 +154,25 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
   const series = await Series.findOne({ _id: seriesId, deletedAt: { $exists: false } });
   if (!series) { res.status(404).json({ error: 'Series not found' }); return; }
 
+  // Check if generation already in progress
+  const existingJob = await GenerationJob.findOne({ seriesId });
+  if (existingJob) {
+    res.status(409).json({ error: 'Generation already in progress for this series' });
+    return;
+  }
+
+  // Load previous lessons to determine next lesson number
+  const prevLessons = await Lesson.find({ seriesId, deletedAt: { $exists: false } }).sort({ sortOrder: 1 });
+  const lastLesson = prevLessons[prevLessons.length - 1];
+  const nextSortOrder = (lastLesson?.sortOrder || 0) + 1;
+
+  // Check if the lesson we're about to generate already exists
+  const existingLesson = await Lesson.findOne({ seriesId, sortOrder: nextSortOrder, deletedAt: { $exists: false } });
+  if (existingLesson) {
+    res.status(409).json({ error: `Day ${nextSortOrder} already exists for this series` });
+    return;
+  }
+
   // SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -165,7 +184,7 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
-  // Create job
+  // Create generation job
   await GenerationJob.findOneAndUpdate(
     { seriesId },
     { status: 'generating', action: 'create', startedAt: new Date(), createdAt: new Date() },
@@ -179,11 +198,7 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
   });
 
   try {
-    // Load previous lessons
-    const prevLessons = await Lesson.find({ seriesId, deletedAt: { $exists: false } }).sort({ sortOrder: 1 });
     const prevLessonData = prevLessons.map(l => ({ title: l.title, followUpQuestion: l.followUpQuestion }));
-    const lastLesson = prevLessons[prevLessons.length - 1];
-    const nextSortOrder = (lastLesson?.sortOrder || 0) + 1;
 
     const formatChars = (chars: { name: string; pronoun: string; role?: string }[]) =>
       chars.length === 0 ? 'None yet — create new characters.' : chars.map(c => `${c.name} (${c.pronoun}, ${c.role || 'character'})`).join(', ');

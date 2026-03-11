@@ -23,6 +23,7 @@ import seriesRoutes from './routes/series.js';
 import subscriptionRoutes from './routes/subscriptions.js';
 import lessonRoutes from './routes/lessons.js';
 import userRoutes from './routes/users.js';
+import adminRoutes from './routes/admin.js';
 import { generalLimiter, authLimiter } from './middleware/rateLimiter.js';
 import { startOrchestrateSeriesCron, startOrchestrateProgressCron } from './jobs/crons.js';
 
@@ -57,6 +58,7 @@ app.use('/api/series', seriesRoutes);
 app.use('/api', subscriptionRoutes);
 app.use('/api', lessonRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ─── Serve Frontend ───────────────────────────────────────────────────────────
 const webDistPath = path.resolve(__dirname, '../../web/dist');
