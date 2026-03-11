@@ -121,7 +121,7 @@ ${wisdomLabel}
 [1-2 sentences]
 
 Tomorrow's Question
-— Use the Socratic method: ask a thought-provoking question that challenges assumptions, invites deeper thinking, and naturally leads to the next concept. Don't ask a simple factual question — ask one that makes the reader wrestle with an idea.
+— Ask a simple, direct question that naturally leads to the next concept. Keep it clear and accessible — one straightforward question that makes the reader curious about what's next.
 IMPORTANT: Do NOT repeat or rephrase any previous question listed above.
 
 Use ** for bold markdown on section headers and key terms.
@@ -253,7 +253,7 @@ ${wisdomLabel}
 [1-2 sentences]
 
 Tomorrow's Question
-— Use the Socratic method: ask a thought-provoking question that challenges assumptions, invites deeper thinking, and naturally leads to the next concept.
+— Ask a simple, direct question that naturally leads to the next concept. Keep it clear and accessible — one straightforward question that makes the reader curious about what's next.
 IMPORTANT: Do NOT repeat or rephrase any previous question listed above.
 
 Use ** for bold markdown on section headers and key terms.
