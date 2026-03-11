@@ -14,6 +14,17 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import api, { type APISeries } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
+const RECOMMENDED_SERIES = [
+  { emoji: '💰', title: 'Financial Independence', topic: 'Financial independence through investing, saving, and building wealth' },
+  { emoji: '🏛️', title: 'Stoic Philosophy', topic: 'Stoic philosophy and practical wisdom for daily life' },
+  { emoji: '🧭', title: 'Emotional Intelligence', topic: 'Emotional intelligence and self-awareness' },
+  { emoji: '💕', title: 'Building Relationships', topic: 'Building and maintaining deep, meaningful relationships' },
+  { emoji: '⏳', title: 'Health & Longevity', topic: 'Health, longevity, and evidence-based wellness practices' },
+  { emoji: '🤝', title: 'Negotiation', topic: 'Negotiation tactics and persuasion' },
+  { emoji: '🧘', title: 'Habits & Systems', topic: 'Building habits and systems for productivity' },
+  { emoji: '🎵', title: 'Music Theory', topic: 'Music theory fundamentals and composition' },
+];
+
 export default function NewSeriesPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -45,6 +56,24 @@ export default function NewSeriesPage() {
     }
   };
 
+  const handleCreateSeries = async (topicText: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.post<APISeries>('/series', { topic: topicText });
+      navigate(`/${res.data.key}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create series';
+      const axiosErr = err as { response?: { data?: { error?: string }; status?: number } };
+      if (axiosErr.response?.status === 429) {
+        setError('Rate limit: you can create up to 3 series per day.');
+      } else {
+        setError(axiosErr.response?.data?.error || msg);
+      }
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="container">
       <header className="home-header">
@@ -52,32 +81,55 @@ export default function NewSeriesPage() {
         <p className="subtitle">Generate an AI-powered daily learning series on any topic</p>
       </header>
 
-      <form className="new-series-form" onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="topic" className="form-label">What do you want to learn?</label>
-          <input
-            id="topic"
-            type="text"
-            className="form-input"
-            placeholder="e.g. Stoic philosophy, Machine learning, Personal finance..."
-            value={topic}
-            onChange={e => setTopic(e.target.value)}
-            disabled={loading}
-            maxLength={200}
-          />
-          <p className="form-hint">Be specific — your topic will be turned into a series of daily stories and lessons.</p>
+      {/* Recommended series */}
+      <div className="recommended-section" style={{ marginBottom: '3rem' }}>
+        <h2 className="section-title">✨ Recommended Topics</h2>
+        <p className="section-subtitle">Start with a curated series or create your own below</p>
+        <div className="series-grid">
+          {RECOMMENDED_SERIES.map(rec => (
+            <button
+              key={rec.topic}
+              className="series-card series-card-recommended"
+              onClick={() => handleCreateSeries(rec.topic)}
+              disabled={loading}
+            >
+              <h2 className="series-card-name">{rec.emoji} {rec.title}</h2>
+              <p className="series-card-theme">{rec.topic}</p>
+            </button>
+          ))}
         </div>
+      </div>
 
-        {error && <p className="form-error">{error}</p>}
+      {/* Custom topic form */}
+      <div style={{ marginTop: '3rem' }}>
+        <h2 className="section-title">🎨 Create Your Own</h2>
+        <form className="new-series-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="topic" className="form-label">What do you want to learn?</label>
+            <input
+              id="topic"
+              type="text"
+              className="form-input"
+              placeholder="e.g. Stoic philosophy, Machine learning, Personal finance..."
+              value={topic}
+              onChange={e => setTopic(e.target.value)}
+              disabled={loading}
+              maxLength={200}
+            />
+            <p className="form-hint">Be specific — your topic will be turned into a series of daily stories and lessons.</p>
+          </div>
 
-        <button type="submit" className="btn-primary" disabled={loading || !topic.trim()}>
-          {loading ? 'Generating series...' : 'Create Series'}
-        </button>
+          {error && <p className="form-error">{error}</p>}
 
-        {loading && (
-          <p className="form-hint">This may take 30–60 seconds while AI generates your first lesson.</p>
-        )}
-      </form>
+          <button type="submit" className="btn-primary" disabled={loading || !topic.trim()}>
+            {loading ? 'Generating series...' : 'Create Series'}
+          </button>
+
+          {loading && (
+            <p className="form-hint">This may take 30–60 seconds while AI generates your first lesson.</p>
+          )}
+        </form>
+      </div>
     </div>
   );
 }
