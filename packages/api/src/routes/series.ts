@@ -167,8 +167,12 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
 
   // Load previous lessons to determine next lesson number
   const prevLessons = await Lesson.find({ seriesId, deletedAt: { $exists: false } }).sort({ sortOrder: 1 });
-  const lastLesson = prevLessons[prevLessons.length - 1];
+  const lastLesson = prevLessons[prevLessons.length - 1]; // Most recently completed lesson
   const nextSortOrder = (lastLesson?.sortOrder || 0) + 1;
+  
+  // The question the NEW lesson should answer is the "Tomorrow's Question" 
+  // from the LAST completed lesson (its followUpQuestion field)
+  const questionToAnswer = lastLesson?.followUpQuestion || undefined;
 
   // Check if the lesson we're about to generate already exists
   const existingLesson = await Lesson.findOne({ seriesId, sortOrder: nextSortOrder, deletedAt: { $exists: false } });
@@ -218,7 +222,7 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       seriesTheme: series.theme,
       parableCharacters: formatChars(series.characters || []),
       newDay: nextSortOrder,
-      tomorrowQuestion: lastLesson?.followUpQuestion || undefined,
+      tomorrowQuestion: questionToAnswer, // The followUpQuestion from the last completed lesson
       prevLessons: prevLessonData,
     }, {
       onTitleDelta: (text) => safeSend('delta', { section: 'title', text }),
