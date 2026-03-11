@@ -294,10 +294,10 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
 
           currentSection = 'parable';
           callbacks.onSectionSwitch('parable');
-          accumulated = afterTitleDelim; // Reset accumulated for parable section
-
+          
           // Start emitting parable if there's text already
           const trimmedParable = afterTitleDelim.replace(/^\n+/, '');
+          accumulated = trimmedParable; // Set accumulated to trimmed version to keep indices aligned
           if (trimmedParable) {
             parableText = trimmedParable;
             callbacks.onParableDelta(trimmedParable);
@@ -337,6 +337,7 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
             standardText = trimmedStandard;
             callbacks.onStandardDelta(trimmedStandard);
           }
+          // Note: No need to reset accumulated here since standard section emits chunks directly
         } else {
           // Still in parable — emit delta but keep small buffer (20 chars)
           const bufferSize = 20;
