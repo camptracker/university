@@ -140,7 +140,6 @@ export default function SeriesPage() {
 
       <header className="home-header" style={{ textAlign: 'left', paddingTop: '0.5rem' }}>
         <h1>{series.title}</h1>
-        <p className="subtitle">{series.description}</p>
         <div className="series-meta-row">
           <span className="series-subscriber-count">{series.subscriberCount} subscriber{series.subscriberCount !== 1 ? 's' : ''}</span>
           {user && (
