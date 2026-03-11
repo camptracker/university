@@ -176,29 +176,40 @@ export default function LessonPage() {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    // For Lesson 2+, verify previous lesson exists before starting stream
-    if (currentDay > 1) {
-      api.get<APILessonsResponse>(`/series/${series._id}/lessons?page=1`)
-        .then(r => {
+    // First, check if this lesson already exists (e.g., after refresh mid-generation)
+    api.get<APILessonsResponse>(`/series/${series._id}/lessons?page=1`)
+      .then(r => {
+        const existingLesson = r.data.lessons.find(l => l.sortOrder === currentDay);
+        if (existingLesson) {
+          // Lesson already exists, load it instead of streaming
+          api.get<APILesson>(`/lessons/${existingLesson._id}`)
+            .then(full => {
+              setLesson(full.data);
+              setSearchParams({}, { replace: true });
+              if (user) api.post(`/lessons/${full.data._id}/read`).catch(() => {});
+            })
+            .catch(console.error);
+          return;
+        }
+
+        // Lesson doesn't exist yet, proceed with streaming checks
+        if (currentDay > 1) {
           const prevLesson = r.data.lessons.find(l => l.sortOrder === currentDay - 1);
           if (!prevLesson) {
             // Previous lesson doesn't exist yet, wait a moment and retry
             console.log(`Waiting for Lesson ${currentDay - 1} to be saved...`);
             setTimeout(() => {
-              // Trigger re-fetch by updating a dummy state
               setLoading(true);
               setLoading(false);
             }, 1000);
             return;
           }
-          // Previous lesson exists, start streaming
-          startStream();
-        })
-        .catch(console.error);
-    } else {
-      // Lesson 1, no previous lesson needed
-      startStream();
-    }
+        }
+
+        // All clear, start streaming
+        startStream();
+      })
+      .catch(console.error);
 
     function startStream() {
       if (!series) return; // TypeScript guard
@@ -260,7 +271,7 @@ export default function LessonPage() {
               if (user) api.post(`/lessons/${full.data._id}/read`).catch(() => {});
             }
           } catch { /* ignore */ }
-        }, 2000);
+        }, 1000); // Poll every 1 second for faster updates
       }
       });
     }
@@ -379,7 +390,9 @@ export default function LessonPage() {
 
         <header className="lesson-header">
           <span className="lesson-day-badge">Lesson {sortNum}</span>
-          <p style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 600 }}>⏳ Generation in progress — waiting for lesson...</p>
+          <p style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 600 }}>
+            ⏳ Generation in progress — the lesson will appear automatically when complete
+          </p>
         </header>
 
         <div style={{ padding: '1rem 0' }}>
