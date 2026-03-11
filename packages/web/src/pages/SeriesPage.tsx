@@ -155,11 +155,17 @@ export default function SeriesPage() {
       </header>
 
       <div className="lesson-list">
-        {lessons.map(lesson => {
-          // Generate preview from parable (first 120 chars)
-          const preview = lesson.parable 
-            ? lesson.parable.replace(/^#.*\n+/gm, '').trim().slice(0, 120) + '...'
-            : '';
+        {lessons.map((lesson, idx) => {
+          // Show the question this lesson is answering
+          let question = '';
+          if (lesson.sortOrder === 1) {
+            // Lesson 1 answers the series anchor question
+            question = series.anchor;
+          } else {
+            // Lesson N answers the previous lesson's followUpQuestion
+            const prevLesson = lessons.find(l => l.sortOrder === lesson.sortOrder - 1);
+            question = prevLesson?.followUpQuestion || '';
+          }
           
           return (
             <Link
@@ -174,7 +180,7 @@ export default function SeriesPage() {
               <div className="lesson-card-text">
                 <span className="lesson-day">Lesson {lesson.sortOrder}</span>
                 <span className="lesson-title">{lesson.title}{lesson.read ? ' ✓' : ''}</span>
-                {preview && <span className="lesson-preview">{preview}</span>}
+                {question && <span className="lesson-preview">{question}</span>}
               </div>
             </Link>
           );
