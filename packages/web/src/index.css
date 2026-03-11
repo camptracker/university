@@ -265,13 +265,13 @@ body {
   border-radius: 12px;
   border: 1px solid var(--border);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  background: var(--surface);
+  line-height: 0;
 }
 .lesson-hero img { 
   width: 100%; 
   height: auto; 
   display: block; 
-  border-radius: 12px;
+  vertical-align: bottom;
 }
 .image-placeholder {
   width: 100%;
