@@ -166,7 +166,7 @@ export default function SeriesPage() {
               <img src={lesson.image} alt={lesson.title} className="lesson-card-img" />
             )}
             <div className="lesson-card-text">
-              <span className="lesson-day">Day {lesson.sortOrder}</span>
+              <span className="lesson-day">Lesson {lesson.sortOrder}</span>
               <span className="lesson-title">{lesson.title}{lesson.read ? ' ✓' : ''}</span>
             </div>
           </Link>

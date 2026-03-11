@@ -151,7 +151,7 @@ export default function LessonPage() {
 
     const currentSort = lesson?.sortOrder || Number(sortOrder);
     if (currentSort === 1) {
-      // For Day 1, use the series anchor question
+      // For Lesson 1, use the series anchor question
       setPrevQuestion(series.anchor);
       return;
     }
@@ -167,7 +167,7 @@ export default function LessonPage() {
       .catch(console.error);
   }, [lesson, series, sortOrder]);
 
-  // Streaming mode: open SSE (wait for previous lesson to exist first if not Day 1)
+  // Streaming mode: open SSE (wait for previous lesson to exist first if not Lesson 1)
   useEffect(() => {
     if (!isStreaming || !series) return;
     setLoading(false);
@@ -176,14 +176,14 @@ export default function LessonPage() {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    // For Day 2+, verify previous lesson exists before starting stream
+    // For Lesson 2+, verify previous lesson exists before starting stream
     if (currentDay > 1) {
       api.get<APILessonsResponse>(`/series/${series._id}/lessons?page=1`)
         .then(r => {
           const prevLesson = r.data.lessons.find(l => l.sortOrder === currentDay - 1);
           if (!prevLesson) {
             // Previous lesson doesn't exist yet, wait a moment and retry
-            console.log(`Waiting for Day ${currentDay - 1} to be saved...`);
+            console.log(`Waiting for Lesson ${currentDay - 1} to be saved...`);
             setTimeout(() => {
               // Trigger re-fetch by updating a dummy state
               setLoading(true);
@@ -196,7 +196,7 @@ export default function LessonPage() {
         })
         .catch(console.error);
     } else {
-      // Day 1, no previous lesson needed
+      // Lesson 1, no previous lesson needed
       startStream();
     }
 
@@ -292,11 +292,11 @@ export default function LessonPage() {
           <span className="breadcrumb-sep">›</span>
           {series && <Link to={`/${series.key}`} className="nav-link">{series.title}</Link>}
           <span className="breadcrumb-sep">›</span>
-          <span>Day {sortNum}</span>
+          <span>Lesson {sortNum}</span>
         </nav>
 
         <header className="lesson-header" ref={headerRef}>
-          <span className="lesson-day-badge">Day {sortNum}</span>
+          <span className="lesson-day-badge">Lesson {sortNum}</span>
           {streamTitle && <h1 style={{ marginTop: '0.5rem' }}>{streamTitle}</h1>}
           {!streamDone && (
             <p style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 600 }}>
@@ -348,13 +348,13 @@ export default function LessonPage() {
         {streamDone && (
           <nav className="bottom-nav">
             {sortNum > 1 ? (
-              <Link to={`/${series!.key}/lesson/${sortNum - 1}`} className="nav-link">← Day {sortNum - 1}</Link>
+              <Link to={`/${series!.key}/lesson/${sortNum - 1}`} className="nav-link">← Lesson {sortNum - 1}</Link>
             ) : <span />}
             {user?.role === 'admin' && (
               <button
                 className="nav-link generate-next-btn"
                 onClick={() => navigate(`/${series!.key}/lesson/${sortNum + 1}?stream=true`)}
-              >Generate Day {sortNum + 1} →</button>
+              >Generate Lesson {sortNum + 1} →</button>
             )}
           </nav>
         )}
@@ -371,11 +371,11 @@ export default function LessonPage() {
           <span className="breadcrumb-sep">›</span>
           {series && <Link to={`/${series.key}`} className="nav-link">{series.title}</Link>}
           <span className="breadcrumb-sep">›</span>
-          <span>Day {sortNum}</span>
+          <span>Lesson {sortNum}</span>
         </nav>
 
         <header className="lesson-header">
-          <span className="lesson-day-badge">Day {sortNum}</span>
+          <span className="lesson-day-badge">Lesson {sortNum}</span>
           <p style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 600 }}>⏳ Generation in progress — waiting for lesson...</p>
         </header>
 
@@ -399,11 +399,11 @@ export default function LessonPage() {
           <span className="breadcrumb-sep">›</span>
           {series && <Link to={`/${series.key}`} className="nav-link">{series.title}</Link>}
           <span className="breadcrumb-sep">›</span>
-          <span>Day {sortNum}</span>
+          <span>Lesson {sortNum}</span>
         </nav>
 
         <header className="lesson-header">
-          <span className="lesson-day-badge">Day {sortNum}</span>
+          <span className="lesson-day-badge">Lesson {sortNum}</span>
         </header>
 
         <div style={{ padding: '1rem 0' }}>
@@ -425,11 +425,11 @@ export default function LessonPage() {
         <span className="breadcrumb-sep">›</span>
         <Link to={`/${series.key}`} className="nav-link">{series.title}</Link>
         <span className="breadcrumb-sep">›</span>
-        <span>Day {sortNum}</span>
+        <span>Lesson {sortNum}</span>
       </nav>
 
       <header className="lesson-header">
-        <span className="lesson-day-badge">Day {sortNum}</span>
+        <span className="lesson-day-badge">Lesson {sortNum}</span>
         <h1>{lesson.title}</h1>
       </header>
 
@@ -449,15 +449,15 @@ export default function LessonPage() {
 
       <nav className="bottom-nav">
         {sortNum > 1 ? (
-          <Link to={`/${series.key}/lesson/${sortNum - 1}`} className="nav-link">← Day {sortNum - 1}</Link>
+          <Link to={`/${series.key}/lesson/${sortNum - 1}`} className="nav-link">← Lesson {sortNum - 1}</Link>
         ) : <span />}
         {sortNum < totalLessons ? (
-          <Link to={`/${series.key}/lesson/${sortNum + 1}`} className="nav-link">Day {sortNum + 1} →</Link>
+          <Link to={`/${series.key}/lesson/${sortNum + 1}`} className="nav-link">Lesson {sortNum + 1} →</Link>
         ) : user?.role === 'admin' ? (
           <button
             className="nav-link generate-next-btn"
             onClick={() => navigate(`/${series.key}/lesson/${sortNum + 1}?stream=true`)}
-          >Generate Day {sortNum + 1} →</button>
+          >Generate Lesson {sortNum + 1} →</button>
         ) : null}
       </nav>
     </div>
