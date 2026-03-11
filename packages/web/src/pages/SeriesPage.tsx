@@ -155,22 +155,30 @@ export default function SeriesPage() {
       </header>
 
       <div className="lesson-list">
-        {lessons.map(lesson => (
-          <Link
-            to={`/${series.key}/lesson/${lesson.sortOrder}`}
-            key={lesson._id}
-            className="lesson-card"
-            style={lesson.read ? { opacity: 0.5 } : undefined}
-          >
-            {lesson.image && (
-              <img src={lesson.image} alt={lesson.title} className="lesson-card-img" />
-            )}
-            <div className="lesson-card-text">
-              <span className="lesson-day">Lesson {lesson.sortOrder}</span>
-              <span className="lesson-title">{lesson.title}{lesson.read ? ' ✓' : ''}</span>
-            </div>
-          </Link>
-        ))}
+        {lessons.map(lesson => {
+          // Generate preview from parable (first 120 chars)
+          const preview = lesson.parable 
+            ? lesson.parable.replace(/^#.*\n+/gm, '').trim().slice(0, 120) + '...'
+            : '';
+          
+          return (
+            <Link
+              to={`/${series.key}/lesson/${lesson.sortOrder}`}
+              key={lesson._id}
+              className="lesson-card"
+              style={lesson.read ? { opacity: 0.5 } : undefined}
+            >
+              {lesson.image && (
+                <img src={lesson.image} alt={lesson.title} className="lesson-card-img" />
+              )}
+              <div className="lesson-card-text">
+                <span className="lesson-day">Lesson {lesson.sortOrder}</span>
+                <span className="lesson-title">{lesson.title}{lesson.read ? ' ✓' : ''}</span>
+                {preview && <span className="lesson-preview">{preview}</span>}
+              </div>
+            </Link>
+          );
+        })}
 
         {/* Placeholder card for first lesson being generated */}
         {generating && lessons.length === 0 && (
