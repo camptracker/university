@@ -2,8 +2,8 @@
  * Series routes — mounted at /api/series
  *
  * Routes:
- * - GET    /api/series                      — all active series, sorted by subscriberCount desc
- * - GET    /api/series/popular              — top 20 by subscriberCount
+ * - GET    /api/series                      — all active series, sorted by most recent
+ * - GET    /api/series/popular              — top 20 by most recent
  * - POST   /api/series                      — create series from {topic}; auth required; 3/user/day limit
  *   Triggers async first-lesson generation; returns series immediately (no lesson yet)
  * - POST   /api/series/:seriesId/generate   — trigger next lesson generation; admin only
@@ -28,16 +28,16 @@ import { generateAndUploadImage } from '../services/imageService.js';
 
 const router = Router();
 
-// GET /api/series - all active series
+// GET /api/series - all active series, sorted by most recent
 router.get('/', async (_req: Request, res: Response) => {
-  const seriesList = await Series.find({ deletedAt: { $exists: false } }).sort({ subscriberCount: -1 });
+  const seriesList = await Series.find({ deletedAt: { $exists: false } }).sort({ createdAt: -1 });
   res.json(seriesList);
 });
 
-// GET /api/series/popular - top 20 by subscriberCount
+// GET /api/series/popular - top 20 by most recent
 router.get('/popular', async (_req: Request, res: Response) => {
   const seriesList = await Series.find({ deletedAt: { $exists: false } })
-    .sort({ subscriberCount: -1 })
+    .sort({ createdAt: -1 })
     .limit(20);
   res.json(seriesList);
 });

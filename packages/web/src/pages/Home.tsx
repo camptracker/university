@@ -1,11 +1,11 @@
 /**
  * Home page — URL: /
  *
- * Displays the top 20 series by subscriberCount (GET /api/series/popular).
+ * Displays the top 20 series sorted by most recent (GET /api/series/popular).
  * Each series card links to /:seriesKey.
  *
  * Unauthenticated users see a "Sign in with Google" CTA.
- * Authenticated users see a "+ Create New Series" card linking to /new.
+ * Authenticated users see a "Create New Series" card at the top linking to /new.
  */
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -41,6 +41,12 @@ export default function Home() {
         <div className="loading">Loading series...</div>
       ) : (
         <div className="series-grid">
+          {user && (
+            <Link to="/new" className="series-card series-card-new">
+              <h2 className="series-card-name">✨ Create New Series</h2>
+              <p className="series-card-theme">Generate a new AI-powered learning series on any topic</p>
+            </Link>
+          )}
           {seriesList.map(s => (
             <Link to={`/${s.key}`} key={s._id} className="series-card">
               <h2 className="series-card-name">{s.title}</h2>
@@ -50,12 +56,6 @@ export default function Home() {
               </div>
             </Link>
           ))}
-          {user && (
-            <Link to="/new" className="series-card series-card-new">
-              <h2 className="series-card-name">✨ Create New Series</h2>
-              <p className="series-card-theme">Generate a new AI-powered learning series on any topic</p>
-            </Link>
-          )}
         </div>
       )}
     </div>
