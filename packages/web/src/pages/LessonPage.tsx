@@ -44,6 +44,26 @@ export default function LessonPage() {
   useEffect(() => { 
     window.scrollTo(0, 0); 
     hasScrolledRef.current = false;
+    
+    // Reset all streaming state when lesson changes
+    setStreamPhase('');
+    setStreamTitle('');
+    setStreamStandard('');
+    setStreamParable('');
+    setStreamFollowUpQuestion('');
+    setStreamImage(null);
+    setStreamDone(false);
+    setWaitingForGen(false);
+    
+    // Close any existing event source
+    if (esRef.current) {
+      esRef.current.close();
+      esRef.current = null;
+    }
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
   }, [seriesKey, sortOrder]);
 
   // Auto-scroll below image when streaming starts
