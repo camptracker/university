@@ -349,6 +349,52 @@ body {
   padding-top: 1.5rem; border-top: 1px solid var(--border);
 }
 
+/* Generate next button */
+.generate-next-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  color: var(--gold);
+  position: relative;
+  animation: fadeInGlimmer 1.5s ease-in-out;
+}
+
+.generate-next-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 67, 0.4), transparent);
+  animation: glimmer 3s ease-in-out infinite;
+}
+
+@keyframes fadeInGlimmer {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glimmer {
+  0% {
+    left: -100%;
+  }
+  50% {
+    left: 100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
 .series-nav {
   display: flex; justify-content: space-between; margin-top: 1.5rem;
   padding: 1.25rem 0; border-top: 1px solid var(--border);
