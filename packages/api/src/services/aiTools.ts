@@ -141,7 +141,7 @@ Return ONLY valid JSON. No markdown code fences. No explanation.`;
     input_schema: {
       type: 'object' as const,
       properties: {
-        title: { type: 'string', description: 'Short lesson title (3-6 words)' },
+        title: { type: 'string', description: 'Short lesson title (3-6 words). Plain text only, no markdown formatting.' },
         standard: { type: 'string', description: 'The full standard lesson in markdown, following the exact format from the system prompt' },
         parable: { type: 'string', description: 'The parable story continuing the series narrative, in markdown' },
         sonnet: { type: 'string', description: 'A 14-line Shakespearean sonnet (ABAB CDCD EFEF GG) with bold title and italicized couplet' },
@@ -215,6 +215,7 @@ You will write THREE sections in order:
 
 SECTION 1 — TITLE (write this first):
 Output a SHORT lesson title (3-6 words) that captures the essence of the concept.
+IMPORTANT: Output PLAIN TEXT ONLY — no markdown formatting, no asterisks, no bold. Just the title text.
 Then output exactly this line: ${TITLE_DELIMITER}
 
 SECTION 2 — PARABLE:
@@ -370,8 +371,15 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
     }
   }
 
+  // Strip markdown formatting from title (**, *, etc.)
+  const cleanTitle = titleText.trim()
+    .replace(/^\*\*(.+?)\*\*$/g, '$1')  // Remove surrounding **bold**
+    .replace(/^\*(.+?)\*$/g, '$1')      // Remove surrounding *italic*
+    .replace(/\*\*/g, '')               // Remove any remaining **
+    .replace(/\*/g, '');                // Remove any remaining *
+
   return { 
-    title: titleText.trim(), 
+    title: cleanTitle, 
     parable: parableText.trim(), 
     standard: standardText.trim() 
   };
@@ -400,7 +408,7 @@ export async function generateLessonMeta(
     input_schema: {
       type: 'object' as const,
       properties: {
-        title: { type: 'string', description: 'Short lesson title (3-6 words) extracted from the standard content' },
+        title: { type: 'string', description: 'Short lesson title (3-6 words) extracted from the standard content. Plain text only, no markdown formatting.' },
         sonnet: { type: 'string', description: `A 14-line Shakespearean sonnet (ABAB CDCD EFEF GG), titled "Sonnet [Roman numeral for day ${newDay}]: [Title]". Bold title. Final couplet italicized with *.` },
         dallePrompt: { type: 'string', description: 'Classical oil painting scene description inspired by the lesson imagery. Just the scene, no style boilerplate.' },
         followUpQuestion: { type: 'string', description: "The Tomorrow's Question from the standard lesson" },
