@@ -98,10 +98,14 @@ router.get('/demo-stream', async (req: Request, res: Response) => {
   send('phase', { phase: 'standard' });
   await streamWords('standard', lesson.content!);
 
-  // Phase 4: Send followUpQuestion (matches real format)
+  // Phase 4: Send followUpQuestion word-by-word (matches real format)
   send('phase', { phase: 'meta' });
   await new Promise(r => setTimeout(r, 200));
-  send('followUpQuestion', { text: lesson.followUpQuestion });
+  const questionWords = lesson.followUpQuestion.split(/(\s+)/);
+  for (const word of questionWords) {
+    send('delta', { section: 'followUpQuestion', text: word });
+    await new Promise(r => setTimeout(r, 50));
+  }
 
   // Phase 5: Image generation
   send('phase', { phase: 'image' });
@@ -235,8 +239,12 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       existingCharacters: series.characters || [],
     });
 
-    // Send followUpQuestion immediately
-    safeSend('followUpQuestion', { text: meta.followUpQuestion });
+    // Stream followUpQuestion word-by-word
+    const words = meta.followUpQuestion.split(/(\s+)/);
+    for (const word of words) {
+      safeSend('delta', { section: 'followUpQuestion', text: word });
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
 
     // Phase 4: Generate image
     safeSend('phase', { phase: 'image' });

@@ -215,11 +215,7 @@ export default function LessonPage() {
       if (section === 'title') setStreamTitle(prev => prev + text);
       if (section === 'standard') setStreamStandard(prev => prev + text);
       if (section === 'parable') setStreamParable(prev => prev + text);
-    });
-
-    es.addEventListener('followUpQuestion', (e) => {
-      const { text } = JSON.parse(e.data);
-      setStreamFollowUpQuestion(text);
+      if (section === 'followUpQuestion') setStreamFollowUpQuestion(prev => prev + text);
     });
 
     es.addEventListener('done', (e) => {
