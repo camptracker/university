@@ -124,7 +124,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               Sign in with Google
             </button>
           )}
-          <div className="sidebar-version">v{__APP_VERSION__}</div>
+          <div className="sidebar-version">
+            <div>v{__APP_VERSION__}</div>
+            <div className="sidebar-version-msg">{__APP_COMMIT_MSG__}</div>
+          </div>
         </div>
       </aside>
     </>
