@@ -41,47 +41,6 @@ export default function LessonPage() {
   const hasScrolledRef = useRef(false);
   const savedScrollYRef = useRef<number>(0);
 
-  // Auto-scroll state
-  type ScrollSpeed = 'off' | 'slow' | 'medium' | 'fast';
-  const [autoScrollSpeed, setAutoScrollSpeed] = useState<ScrollSpeed>('off');
-  const autoScrollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Auto-scroll effect
-  useEffect(() => {
-    if (autoScrollIntervalRef.current) {
-      clearInterval(autoScrollIntervalRef.current);
-      autoScrollIntervalRef.current = null;
-    }
-
-    if (autoScrollSpeed === 'off') return;
-
-    const speedMap = {
-      slow: 0.5,
-      medium: 1.5,
-      fast: 3,
-    };
-
-    const scrollAmount = speedMap[autoScrollSpeed as 'slow' | 'medium' | 'fast'];
-    
-    autoScrollIntervalRef.current = setInterval(() => {
-      window.scrollBy({ top: scrollAmount, behavior: 'auto' });
-    }, 16); // ~60fps
-
-    return () => {
-      if (autoScrollIntervalRef.current) {
-        clearInterval(autoScrollIntervalRef.current);
-        autoScrollIntervalRef.current = null;
-      }
-    };
-  }, [autoScrollSpeed]);
-
-  const cycleScrollSpeed = () => {
-    const speeds: ScrollSpeed[] = ['off', 'slow', 'medium', 'fast'];
-    const currentIndex = speeds.indexOf(autoScrollSpeed);
-    const nextIndex = (currentIndex + 1) % speeds.length;
-    setAutoScrollSpeed(speeds[nextIndex]);
-  };
-
   useEffect(() => { 
     window.scrollTo(0, 0); 
     hasScrolledRef.current = false;
@@ -97,7 +56,6 @@ export default function LessonPage() {
     setStreamImage(null);
     setStreamDone(false);
     setWaitingForGen(false);
-    setAutoScrollSpeed('off'); // Stop auto-scroll when navigating
     
     // Close any existing event source
     if (esRef.current) {
@@ -420,20 +378,6 @@ export default function LessonPage() {
             )}
           </nav>
         )}
-
-        {/* Auto-scroll button */}
-        <button
-          className="auto-scroll-btn"
-          onClick={cycleScrollSpeed}
-          aria-label="Toggle auto-scroll"
-          title={`Auto-scroll: ${autoScrollSpeed}`}
-        >
-          {autoScrollSpeed === 'off' && '▶'}
-          {autoScrollSpeed === 'slow' && '▶'}
-          {autoScrollSpeed === 'medium' && '▶▶'}
-          {autoScrollSpeed === 'fast' && '▶▶▶'}
-          <span className="auto-scroll-speed">{autoScrollSpeed === 'off' ? 'Off' : autoScrollSpeed}</span>
-        </button>
       </div>
     );
   }
@@ -464,20 +408,6 @@ export default function LessonPage() {
           <div className="skeleton-line skeleton-long" style={{ marginTop: '1rem' }} />
           <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
         </div>
-
-        {/* Auto-scroll button */}
-        <button
-          className="auto-scroll-btn"
-          onClick={cycleScrollSpeed}
-          aria-label="Toggle auto-scroll"
-          title={`Auto-scroll: ${autoScrollSpeed}`}
-        >
-          {autoScrollSpeed === 'off' && '▶'}
-          {autoScrollSpeed === 'slow' && '▶'}
-          {autoScrollSpeed === 'medium' && '▶▶'}
-          {autoScrollSpeed === 'fast' && '▶▶▶'}
-          <span className="auto-scroll-speed">{autoScrollSpeed === 'off' ? 'Off' : autoScrollSpeed}</span>
-        </button>
       </div>
     );
   }
@@ -590,20 +520,6 @@ export default function LessonPage() {
           >Generate Lesson {sortNum + 1} →</button>
         ) : null}
       </nav>
-
-      {/* Auto-scroll button */}
-      <button
-        className="auto-scroll-btn"
-        onClick={cycleScrollSpeed}
-        aria-label="Toggle auto-scroll"
-        title={`Auto-scroll: ${autoScrollSpeed}`}
-      >
-        {autoScrollSpeed === 'off' && '▶'}
-        {autoScrollSpeed === 'slow' && '▶'}
-        {autoScrollSpeed === 'medium' && '▶▶'}
-        {autoScrollSpeed === 'fast' && '▶▶▶'}
-        <span className="auto-scroll-speed">{autoScrollSpeed === 'off' ? 'Off' : autoScrollSpeed}</span>
-      </button>
     </div>
   );
 }

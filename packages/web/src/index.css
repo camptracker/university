@@ -114,13 +114,7 @@ body {
 .container {
   max-width: 680px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 8rem;
-}
-
-@media (max-width: 768px) {
-  .container {
-    padding-bottom: 7rem;
-  }
+  padding: 2rem 1.5rem 4rem;
 }
 
 /* Breadcrumb */
@@ -692,53 +686,6 @@ body {
 .follow-up-question .follow-up-text { margin: 0; font-style: italic; font-size: 1.1rem; line-height: 1.6; color: var(--text); }
 
 /* Auto-scroll button */
-.auto-scroll-btn {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--gold);
-  border: 2px solid var(--gold-dim);
-  color: var(--bg);
-  font-size: 1.2rem;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s;
-  z-index: 100;
-}
-
-.auto-scroll-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-}
-
-.auto-scroll-btn:active {
-  transform: scale(0.95);
-}
-
-.auto-scroll-speed {
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: capitalize;
-  margin-top: -0.1rem;
-}
-
-@media (max-width: 768px) {
-  .auto-scroll-btn {
-    width: 56px;
-    height: 56px;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    font-size: 1rem;
-  }
-  
   .auto-scroll-speed {
     font-size: 0.6rem;
   }
