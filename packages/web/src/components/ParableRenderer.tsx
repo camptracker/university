@@ -48,25 +48,72 @@ export default function ParableRenderer({ text, answeringQuestion, followUpQuest
     return () => container.removeEventListener('click', handleClick);
   }, [characters]);
 
-  // Calculate tooltip position
+  // Calculate tooltip position with boundary detection
   const getTooltipStyle = (): React.CSSProperties => {
     if (!openTooltip) return { display: 'none' };
     
     const rect = openTooltip.element.getBoundingClientRect();
+    const tooltipWidth = Math.min(400, window.innerWidth - 32); // Max 400px or window width - padding
+    const tooltipMinWidth = Math.min(280, window.innerWidth - 32);
+    
+    // Calculate centered position
+    let left = rect.left + rect.width / 2;
+    let transform = 'translateX(-50%)';
+    
+    // Adjust if tooltip would overflow on the right
+    if (left + tooltipWidth / 2 > window.innerWidth - 16) {
+      left = window.innerWidth - tooltipWidth - 16;
+      transform = 'none';
+    }
+    // Adjust if tooltip would overflow on the left
+    else if (left - tooltipWidth / 2 < 16) {
+      left = 16;
+      transform = 'none';
+    }
+    
+    // Position below by default, but above if not enough space below
+    let top = rect.bottom + 8;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    
+    if (spaceBelow < 300 && spaceAbove > spaceBelow) {
+      // Position above
+      top = rect.top - 8;
+      return {
+        position: 'fixed',
+        bottom: `${window.innerHeight - top}px`,
+        left: `${left}px`,
+        transform,
+        padding: '1rem',
+        backgroundColor: 'rgba(20, 20, 30, 0.95)',
+        border: '1px solid var(--gold)',
+        borderRadius: '8px',
+        minWidth: `${tooltipMinWidth}px`,
+        maxWidth: `${tooltipWidth}px`,
+        zIndex: 1000,
+        fontSize: '0.875rem',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+        maxHeight: '60vh',
+        overflowY: 'auto',
+      };
+    }
+    
     return {
       position: 'fixed',
-      top: `${rect.bottom + 8}px`,
-      left: `${rect.left + rect.width / 2}px`,
-      transform: 'translateX(-50%)',
+      top: `${top}px`,
+      left: `${left}px`,
+      transform,
       padding: '1rem',
       backgroundColor: 'rgba(20, 20, 30, 0.95)',
       border: '1px solid var(--gold)',
       borderRadius: '8px',
-      minWidth: '280px',
-      maxWidth: '400px',
+      minWidth: `${tooltipMinWidth}px`,
+      maxWidth: `${tooltipWidth}px`,
       zIndex: 1000,
       fontSize: '0.875rem',
       boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+      maxHeight: '60vh',
+      overflowY: 'auto',
     };
   };
 
