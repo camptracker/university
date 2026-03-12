@@ -21,6 +21,7 @@
  *
  * Dependencies: aiTools (Claude), imageService (DALL-E/Cloudinary), all models
  */
+import { randomUUID } from 'crypto';
 import { Series, ISeries } from '../models/Series.js';
 import { Lesson } from '../models/Lesson.js';
 import { Subscription } from '../models/Subscription.js';
@@ -183,25 +184,15 @@ export async function createLessonForSeries(seriesId: string): Promise<void> {
 // ─── Create Series ─────────────────────────────────────────────────────────────
 
 export async function createSeriesWithFirstLesson(topic: string, userId: string): Promise<ISeries> {
-  // Generate series details
+  // Generate series details (title, description, anchor, theme)
   const details = await createSeriesDetails(topic);
 
-  // Check if key already exists
-  const existing = await Series.findOne({ key: details.key });
-  if (existing) {
-    // Subscribe user to existing series
-    await Subscription.findOneAndUpdate(
-      { userId, seriesId: existing._id },
-      { userId, seriesId: existing._id },
-      { upsert: true }
-    );
-    await Series.findByIdAndUpdate(existing._id, { $inc: { subscriberCount: 1 } });
-    return existing;
-  }
+  // Generate UUID for the series key
+  const key = randomUUID();
 
   const series = await Series.create({
     title: details.title,
-    key: details.key,
+    key,
     description: details.description,
     anchor: details.anchor,
     theme: details.theme,

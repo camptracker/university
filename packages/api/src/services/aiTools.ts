@@ -36,7 +36,6 @@ async function callTool<T>(toolName: string, toolDef: Anthropic.Tool, messages: 
 
 export interface SeriesDetails {
   title: string;
-  key: string;
   description: string;
   anchor: string;
   theme: string;
@@ -50,12 +49,11 @@ export async function createSeriesDetails(topic: string): Promise<SeriesDetails>
       type: 'object' as const,
       properties: {
         title: { type: 'string', description: 'Series title' },
-        key: { type: 'string', description: 'URL-safe unique slug (kebab-case, max 40 chars)' },
         description: { type: 'string', description: 'Short description (1-2 sentences)' },
         anchor: { type: 'string', description: 'A Socratic starter question (why/what/how) that kicks off the learning journey for this theme' },
         theme: { type: 'string', description: 'The overarching theme of this series (e.g. "Building wealth through patience and discipline")' },
       },
-      required: ['title', 'key', 'description', 'anchor', 'theme'],
+      required: ['title', 'description', 'anchor', 'theme'],
     },
   }, [{ role: 'user', content: `Create series metadata for a University series about: ${topic}` }]);
 }
