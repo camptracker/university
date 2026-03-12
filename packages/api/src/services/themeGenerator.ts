@@ -45,7 +45,7 @@ Today's date: ${new Date().toISOString().split('T')[0]}
 Generate 8 themes that someone would want to learn about today.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-haiku-4-5',
     max_tokens: 2048,
     tools: [{
       name: 'generate_themes',
