@@ -40,6 +40,7 @@ export default function LessonPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const headerRef = useRef<HTMLElement>(null);
   const hasScrolledRef = useRef(false);
+  const savedScrollYRef = useRef<number>(0);
 
   useEffect(() => { 
     window.scrollTo(0, 0); 
@@ -73,6 +74,17 @@ export default function LessonPage() {
       hasScrolledRef.current = true;
     }
   }, [isStreaming, streamParable]);
+
+  // Restore scroll position when streaming completes
+  useEffect(() => {
+    if (streamDone && savedScrollYRef.current > 0) {
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        window.scrollTo(0, savedScrollYRef.current);
+        savedScrollYRef.current = 0; // Reset after restoring
+      });
+    }
+  }, [streamDone]);
 
   // Load series info (needed for both modes)
   useEffect(() => {
@@ -231,8 +243,15 @@ export default function LessonPage() {
 
     es.addEventListener('done', (e) => {
       const { image, lessonId } = JSON.parse(e.data);
+      
+      // Save scroll position before state updates that will trigger re-render
+      savedScrollYRef.current = window.scrollY;
+      
+      // Batch state updates to minimize re-renders
       if (image) setStreamImage(image);
       setStreamDone(true);
+      setTotalLessons(prev => prev + 1);
+      
       es.close();
       esRef.current = null;
 
@@ -240,9 +259,6 @@ export default function LessonPage() {
       if (user && lessonId) {
         api.post(`/lessons/${lessonId}/read`).catch(() => {});
       }
-
-      // Increment totalLessons since we just created a new one
-      setTotalLessons(prev => prev + 1);
 
       // Don't remove ?stream=true param or set lesson state
       // Any state/URL change would trigger re-render and lose scroll position
