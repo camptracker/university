@@ -188,6 +188,7 @@ export interface StreamLessonOpts {
   parableCharacters: string;
   newDay: number;
   tomorrowQuestion?: string;
+  prevLessonPlan?: string;
   prevLessons: { title: string; followUpQuestion: string }[];
   characterContext?: CharacterContext[];
 }
@@ -203,11 +204,15 @@ export async function streamLesson(
   opts: StreamLessonOpts,
   callbacks: StreamCallbacks
 ): Promise<{ title: string; parable: string; standard: string; inputTokens: number; outputTokens: number }> {
-  const { seriesName, seriesTheme, parableCharacters, newDay, tomorrowQuestion, prevLessons, characterContext } = opts;
+  const { seriesName, seriesTheme, parableCharacters, newDay, tomorrowQuestion, prevLessonPlan, prevLessons, characterContext } = opts;
   const wisdomLabel = 'Real-World Wisdom';
 
   const historyBlock = prevLessons.length > 0
     ? `Previously covered lessons (DO NOT repeat topics or questions):\n${prevLessons.map((l, i) => `- Lesson ${i + 1}: "${l.title}" (Q: ${l.followUpQuestion})`).join('\n')}`
+    : '';
+
+  const planBlock = prevLessonPlan
+    ? `\n\nStory Plan for This Lesson:\n${prevLessonPlan}\n\nExecute this plan in the parable section below.`
     : '';
 
   const characterContextBlock = characterContext && characterContext.length > 0
@@ -227,7 +232,7 @@ export async function streamLesson(
   const system = `You are a lesson generator for the "${seriesName}" series.
 Theme: ${seriesTheme}
 Parable Characters: ${parableCharacters}
-${historyBlock}${characterContextBlock}
+${historyBlock}${planBlock}${characterContextBlock}
 
 You will write THREE sections in order:
 1. TITLE (3-6 words)
@@ -429,6 +434,7 @@ export interface LessonMeta {
   sonnet: string;
   dallePrompt: string;
   followUpQuestion: string;
+  nextLessonPlan: string;
   characters: { name: string; pronoun: string; age?: string; personality?: string; role?: string }[];
   characterUpdates: CharacterUpdate[];
 }
@@ -476,6 +482,7 @@ export async function generateLessonMeta(
         sonnet: { type: 'string', description: `A 14-line Shakespearean sonnet (ABAB CDCD EFEF GG), titled "Sonnet [Roman numeral for lesson ${newDay}]: [Title]". Bold title. Final couplet italicized with *.` },
         dallePrompt: { type: 'string', description: 'Classical oil painting scene description inspired by the lesson imagery. Just the scene, no style boilerplate.' },
         followUpQuestion: { type: 'string', description: "The Tomorrow's Question from the standard lesson" },
+        nextLessonPlan: { type: 'string', description: 'A brief story plan (3-5 sentences) for the next lesson that will help answer the followUpQuestion. Describe the narrative arc, key events, and how the characters will explore the next concept through their actions and dialogue.' },
         characters: {
           type: 'array',
           description: 'Full character list including any new characters from the parable',
@@ -516,7 +523,7 @@ export async function generateLessonMeta(
           },
         },
       },
-      required: ['title', 'sonnet', 'dallePrompt', 'followUpQuestion', 'characters', 'characterUpdates'],
+      required: ['title', 'sonnet', 'dallePrompt', 'followUpQuestion', 'nextLessonPlan', 'characters', 'characterUpdates'],
     },
   }, [{
     role: 'user',
@@ -530,7 +537,7 @@ ${standardContent}
 Parable:
 ${parableContent}
 
-Extract the title, write a sonnet, create a DALL-E prompt, identify the follow-up question, and list all characters.`,
+Extract the title, write a sonnet, create a DALL-E prompt, identify the follow-up question, create a story plan for the next lesson, and list all characters.`,
   }]);
 }
 

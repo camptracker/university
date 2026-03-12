@@ -29,6 +29,7 @@ export interface ILesson extends Document {
   image?: string;
   parable?: string;
   poem?: string;
+  nextLessonPlan?: string;
   inputTokens?: number;
   outputTokens?: number;
   pricingUSD?: number;
@@ -46,6 +47,7 @@ const LessonSchema = new Schema<ILesson>({
   image: String,
   parable: String,
   poem: String,
+  nextLessonPlan: String,
   inputTokens: Number,
   outputTokens: Number,
   pricingUSD: Number,

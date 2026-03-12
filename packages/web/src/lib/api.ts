@@ -104,6 +104,7 @@ export interface APILesson {
   title: string;
   content: string;
   followUpQuestion: string;
+  nextLessonPlan?: string;
   date: string;
   image?: string;
   parable?: string;

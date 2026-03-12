@@ -166,6 +166,9 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
   // The question the NEW lesson should answer is the "Tomorrow's Question" 
   // from the LAST completed lesson (its followUpQuestion field)
   const questionToAnswer = lastLesson?.followUpQuestion || undefined;
+  
+  // The story plan for THIS lesson from the previous lesson
+  const storyPlan = lastLesson?.nextLessonPlan || undefined;
 
   // Check if the lesson we're about to generate already exists
   const existingLesson = await Lesson.findOne({ seriesId, sortOrder: nextSortOrder, deletedAt: { $exists: false } });
@@ -225,6 +228,7 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       parableCharacters: formatChars(series.characters || []),
       newDay: nextSortOrder,
       tomorrowQuestion: questionToAnswer, // The followUpQuestion from the last completed lesson
+      prevLessonPlan: storyPlan, // The story plan from the previous lesson
       prevLessons: prevLessonData,
       characterContext,
     }, {
@@ -274,6 +278,7 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       title: lessonTitle,
       content: standardContent,
       followUpQuestion: meta.followUpQuestion,
+      nextLessonPlan: meta.nextLessonPlan,
       date: new Date(),
       image: imageUrl,
       parable: parableContent,

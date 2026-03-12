@@ -558,6 +558,25 @@ export default function LessonPage() {
         </div>
       )}
 
+      {user?.role === 'admin' && lesson.nextLessonPlan && (
+        <div style={{ 
+          marginTop: '1rem', 
+          padding: '1rem', 
+          backgroundColor: 'var(--gold-bg)', 
+          borderRadius: '8px',
+          fontSize: '0.875rem',
+          color: 'var(--text)',
+          borderLeft: '3px solid var(--gold)'
+        }}>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <strong style={{ color: 'var(--gold)' }}>Plan for Next Lesson:</strong>
+          </div>
+          <div style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'var(--text-muted)' }}>
+            {lesson.nextLessonPlan}
+          </div>
+        </div>
+      )}
+
       <nav className="bottom-nav">
         {sortNum > 1 ? (
           <Link to={`/${series.key}/lesson/${sortNum - 1}`} className="nav-link">← Lesson {sortNum - 1}</Link>
