@@ -24,8 +24,9 @@ import subscriptionRoutes from './routes/subscriptions.js';
 import lessonRoutes from './routes/lessons.js';
 import userRoutes from './routes/users.js';
 import adminRoutes from './routes/admin.js';
+import themesRoutes from './routes/themes.js';
 import { generalLimiter, authLimiter } from './middleware/rateLimiter.js';
-import { startOrchestrateSeriesCron, startOrchestrateProgressCron } from './jobs/crons.js';
+import { startOrchestrateSeriesCron, startOrchestrateProgressCron, startDailyThemesCron } from './jobs/crons.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -59,6 +60,7 @@ app.use('/api', subscriptionRoutes);
 app.use('/api', lessonRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/themes', themesRoutes);
 
 // ─── Serve Frontend ───────────────────────────────────────────────────────────
 const webDistPath = path.resolve(__dirname, '../../web/dist');
@@ -92,6 +94,11 @@ async function start(): Promise<void> {
   //   startOrchestrateSeriesCron();
   //   startOrchestrateProgressCron();
   // }
+  
+  // Daily themes cron (always enabled)
+  if (process.env.NODE_ENV !== 'test') {
+    startDailyThemesCron();
+  }
 
   app.listen(PORT, () => {
     console.log(`Parable API v2 running on port ${PORT}`);

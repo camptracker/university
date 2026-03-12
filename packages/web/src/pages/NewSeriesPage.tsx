@@ -8,12 +8,18 @@
  * Note: series creation is async — the API returns the series before the first lesson
  * is generated. The user lands on SeriesPage which will show generation status.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import api, { type APISeries } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
-const RECOMMENDED_SERIES = [
+interface DailyTheme {
+  emoji: string;
+  title: string;
+  topic: string;
+}
+
+const FALLBACK_THEMES: DailyTheme[] = [
   { emoji: '💰', title: 'Financial Independence', topic: 'Financial independence through investing, saving, and building wealth' },
   { emoji: '🏛️', title: 'Stoic Philosophy', topic: 'Stoic philosophy and practical wisdom for daily life' },
   { emoji: '🧭', title: 'Emotional Intelligence', topic: 'Emotional intelligence and self-awareness' },
@@ -30,6 +36,21 @@ export default function NewSeriesPage() {
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [dailyThemes, setDailyThemes] = useState<DailyTheme[]>(FALLBACK_THEMES);
+
+  // Fetch daily themes on mount
+  useEffect(() => {
+    api.get<{ themes: DailyTheme[]; generatedAt: string | null }>('/themes/daily')
+      .then(res => {
+        if (res.data.themes && res.data.themes.length > 0) {
+          setDailyThemes(res.data.themes);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load daily themes:', err);
+        // Keep fallback themes
+      });
+  }, []);
 
   if (authLoading) return <div className="container"><div className="loading">Loading...</div></div>;
   if (!user) return <Navigate to="/" replace />;
@@ -98,18 +119,18 @@ export default function NewSeriesPage() {
         )}
       </form>
 
-      {/* Recommended topics */}
+      {/* Daily themes */}
       <div style={{ marginTop: '2rem' }}>
-        <p className="form-hint" style={{ marginBottom: '0.75rem' }}>Or try a suggested topic:</p>
+        <p className="form-hint" style={{ marginBottom: '0.75rem' }}>Or explore today's themes:</p>
         <div className="topic-tags">
-          {RECOMMENDED_SERIES.map(rec => (
+          {dailyThemes.map(theme => (
             <button
-              key={rec.topic}
+              key={theme.topic}
               className="topic-tag"
-              onClick={() => handleCreateSeries(rec.topic)}
+              onClick={() => handleCreateSeries(theme.topic)}
               disabled={loading}
             >
-              {rec.emoji} {rec.title}
+              {theme.emoji} {theme.title}
             </button>
           ))}
         </div>

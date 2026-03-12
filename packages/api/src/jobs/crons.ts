@@ -20,6 +20,7 @@ import { Subscription } from '../models/Subscription.js';
 import { Progress } from '../models/Progress.js';
 import { Read } from '../models/Read.js';
 import { createLessonForSeries } from '../services/generationService.js';
+import { generateDailyThemes } from '../services/themeGenerator.js';
 
 // Midnight: generate next lesson for all active series (concurrency 3)
 export function startOrchestrateSeriesCron(): void {
@@ -88,6 +89,19 @@ export function startOrchestrateProgressCron(): void {
       console.log(`[cron] orchestrateProgress done: advanced ${advanced} users`);
     } catch (err) {
       console.error('[cron] orchestrateProgress error:', err);
+    }
+  }, { timezone: 'UTC' });
+}
+
+// 6AM UTC (11PM PST / 10PM PDT): generate daily themes
+export function startDailyThemesCron(): void {
+  cron.schedule('0 6 * * *', async () => {
+    console.log('[cron] generateDailyThemes starting...');
+    try {
+      const themes = await generateDailyThemes();
+      console.log(`[cron] generateDailyThemes done: ${themes.length} themes generated`);
+    } catch (err) {
+      console.error('[cron] generateDailyThemes error:', err);
     }
   }, { timezone: 'UTC' });
 }
