@@ -21,7 +21,7 @@ import { Subscription } from '../models/Subscription.js';
 import { GenerationJob } from '../models/GenerationJob.js';
 import { requireAuth, requireAdmin, type AuthPayload } from '../middleware/auth.js';
 import { createSeriesWithFirstLesson, createLessonForSeries } from '../services/generationService.js';
-import { streamLesson, generateLessonMeta } from '../services/aiTools.js';
+import { streamLesson, generateLessonMeta, rankMemoriesByValues } from '../services/aiTools.js';
 import { generateAndUploadImage } from '../services/imageService.js';
 
 const router = Router();
@@ -316,11 +316,11 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
         const allMemories = [...existingMemories, ...newMemories];
         
         // Rank memories by alignment with new values (keep top 10)
-        // For now, simple heuristic: keep most recent 10
-        // TODO: Implement AI-based ranking by value alignment
-        const rankedMemories = allMemories
-          .sort((a, b) => b.lessonNumber - a.lessonNumber)
-          .slice(0, 10);
+        const rankedMemories = await rankMemoriesByValues(
+          update.name,
+          update.values,
+          allMemories
+        );
         
         // Update character
         await Series.findByIdAndUpdate(series._id, {

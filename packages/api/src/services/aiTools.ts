@@ -537,3 +537,57 @@ ${parableContent}
 Extract the title, write a sonnet, create a DALL-E prompt, identify the follow-up question, and list all characters.`,
   }]);
 }
+
+// ─── Memory Ranking ───────────────────────────────────────────────────────────
+
+interface RankedMemory {
+  event: string;
+  perspective: string;
+  lessonNumber: number;
+  alignmentScore: number;
+}
+
+export async function rankMemoriesByValues(
+  characterName: string,
+  currentValues: string,
+  memories: { event: string; perspective: string; lessonNumber: number }[]
+): Promise<{ event: string; perspective: string; lessonNumber: number }[]> {
+  if (memories.length <= 10) return memories; // No need to rank if under threshold
+
+  const memoriesDesc = memories.map((m, i) => 
+    `${i}. Lesson ${m.lessonNumber}: ${m.event} (Perspective: ${m.perspective})`
+  ).join('\n');
+
+  const result = await callTool<{ rankedIndices: number[] }>('rank_memories', {
+    name: 'rank_memories',
+    description: 'Rank character memories by alignment with current values',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        rankedIndices: {
+          type: 'array',
+          description: 'Array of memory indices (0-based) ranked from most to least aligned with current values. Return top 10 only.',
+          items: { type: 'number' },
+        },
+      },
+      required: ['rankedIndices'],
+    },
+  }, [{
+    role: 'user',
+    content: `Rank these memories for ${characterName} based on alignment with their current values.
+
+Current Values:
+${currentValues}
+
+Memories:
+${memoriesDesc}
+
+Return the indices (0-${memories.length - 1}) of the top 10 memories that best align with and support their current values. Prioritize memories that:
+1. Shaped or reinforced their current beliefs
+2. Led to growth/perspective shifts reflected in current values
+3. Are most relevant to who they are now`,
+  }]);
+
+  // Return top 10 memories in ranked order
+  return result.rankedIndices.slice(0, 10).map(i => memories[i]);
+}
