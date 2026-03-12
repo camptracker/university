@@ -208,6 +208,15 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       if (!clientDisconnected) send(event, data);
     };
 
+    // Prepare character context
+    const characterContext = (series.characters || []).map(c => ({
+      name: c.name,
+      pronoun: c.pronoun,
+      role: c.role,
+      values: c.values,
+      memories: c.memories,
+    }));
+
     // Single streaming call: title, parable, then standard lesson
     safeSend('phase', { phase: 'title' });
     const { title: lessonTitle, parable: parableContent, standard: standardContent, inputTokens, outputTokens } = await streamLesson({
@@ -217,6 +226,7 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       newDay: nextSortOrder,
       tomorrowQuestion: questionToAnswer, // The followUpQuestion from the last completed lesson
       prevLessons: prevLessonData,
+      characterContext,
     }, {
       onTitleDelta: (text) => safeSend('delta', { section: 'title', text }),
       onParableDelta: (text) => safeSend('delta', { section: 'parable', text }),
@@ -273,9 +283,59 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       pricingUSD,
     });
 
-    // Merge new characters
+    // Process character updates
+    for (const update of meta.characterUpdates) {
+      const charIndex = series.characters.findIndex(c => c.name === update.name);
+      
+      if (charIndex === -1) {
+        // New character — add to series
+        const newChar = meta.characters.find(c => c.name === update.name);
+        if (newChar) {
+          await Series.findByIdAndUpdate(series._id, { 
+            $push: { 
+              characters: {
+                ...newChar,
+                values: update.values,
+                memories: update.memories.map(m => ({ ...m, lessonNumber: nextSortOrder })),
+              }
+            } 
+          });
+        }
+      } else {
+        // Existing character — update values and merge memories
+        const char = series.characters[charIndex];
+        const existingMemories = char.memories || [];
+        
+        // Add new memories with lessonNumber
+        const newMemories = update.memories.map(m => ({
+          event: m.event,
+          perspective: m.perspective,
+          lessonNumber: nextSortOrder,
+        }));
+        
+        const allMemories = [...existingMemories, ...newMemories];
+        
+        // Rank memories by alignment with new values (keep top 10)
+        // For now, simple heuristic: keep most recent 10
+        // TODO: Implement AI-based ranking by value alignment
+        const rankedMemories = allMemories
+          .sort((a, b) => b.lessonNumber - a.lessonNumber)
+          .slice(0, 10);
+        
+        // Update character
+        await Series.findByIdAndUpdate(series._id, {
+          $set: {
+            [`characters.${charIndex}.values`]: update.values,
+            [`characters.${charIndex}.memories`]: rankedMemories,
+          },
+        });
+      }
+    }
+    
+    // Merge any new characters not in updates (edge case)
+    const updatedNames = new Set(meta.characterUpdates.map(u => u.name));
     const existingNames = new Set(series.characters.map(c => c.name));
-    const newChars = meta.characters.filter(c => !existingNames.has(c.name));
+    const newChars = meta.characters.filter(c => !existingNames.has(c.name) && !updatedNames.has(c.name));
     if (newChars.length > 0) {
       await Series.findByIdAndUpdate(series._id, { $push: { characters: { $each: newChars } } });
     }

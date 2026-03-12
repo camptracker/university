@@ -17,12 +17,20 @@
  */
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
+export interface ICharacterMemory {
+  event: string;
+  perspective: string;
+  lessonNumber: number;
+}
+
 export interface ICharacter {
   name: string;
   pronoun: string;
   age?: string;
   personality?: string;
   role?: string;
+  values?: string;
+  memories?: ICharacterMemory[];
 }
 
 export interface ISeries extends Document {
@@ -38,12 +46,20 @@ export interface ISeries extends Document {
   createdAt: Date;
 }
 
+const CharacterMemorySchema = new Schema<ICharacterMemory>({
+  event: { type: String, required: true },
+  perspective: { type: String, required: true },
+  lessonNumber: { type: Number, required: true },
+}, { _id: false });
+
 const CharacterSchema = new Schema<ICharacter>({
   name: { type: String, required: true },
   pronoun: { type: String, required: true },
   age: String,
   personality: String,
   role: String,
+  values: String,
+  memories: [CharacterMemorySchema],
 }, { _id: false });
 
 const SeriesSchema = new Schema<ISeries>({

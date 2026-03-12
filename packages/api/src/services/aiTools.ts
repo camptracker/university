@@ -176,6 +176,14 @@ const STREAM_MODEL = 'claude-haiku-4-5';
 const TITLE_DELIMITER = '---TITLE_BREAK---';
 const SECTION_DELIMITER = '---LESSON_SECTION_BREAK---';
 
+export interface CharacterContext {
+  name: string;
+  pronoun: string;
+  role?: string;
+  values?: string;
+  memories?: { event: string; perspective: string; lessonNumber: number }[];
+}
+
 export interface StreamLessonOpts {
   seriesName: string;
   seriesTheme: string;
@@ -183,6 +191,7 @@ export interface StreamLessonOpts {
   newDay: number;
   tomorrowQuestion?: string;
   prevLessons: { title: string; followUpQuestion: string }[];
+  characterContext?: CharacterContext[];
 }
 
 export interface StreamCallbacks {
@@ -196,17 +205,31 @@ export async function streamLesson(
   opts: StreamLessonOpts,
   callbacks: StreamCallbacks
 ): Promise<{ title: string; parable: string; standard: string; inputTokens: number; outputTokens: number }> {
-  const { seriesName, seriesTheme, parableCharacters, newDay, tomorrowQuestion, prevLessons } = opts;
+  const { seriesName, seriesTheme, parableCharacters, newDay, tomorrowQuestion, prevLessons, characterContext } = opts;
   const wisdomLabel = 'Real-World Wisdom';
 
   const historyBlock = prevLessons.length > 0
     ? `Previously covered lessons (DO NOT repeat topics or questions):\n${prevLessons.map((l, i) => `- Day ${i + 1}: "${l.title}" (Q: ${l.followUpQuestion})`).join('\n')}`
     : '';
 
+  const characterContextBlock = characterContext && characterContext.length > 0
+    ? `\n\nCharacter Context (use this to maintain continuity):\n${characterContext.map(c => {
+        let block = `${c.name} (${c.pronoun}, ${c.role || 'character'})`;
+        if (c.values) block += `\n  Values: ${c.values}`;
+        if (c.memories && c.memories.length > 0) {
+          block += `\n  Core Memories:`;
+          c.memories.forEach(m => {
+            block += `\n    - Lesson ${m.lessonNumber}: ${m.event} (Perspective: ${m.perspective})`;
+          });
+        }
+        return block;
+      }).join('\n\n')}`
+    : '';
+
   const system = `You are a lesson generator for the "${seriesName}" series.
 Theme: ${seriesTheme}
 Parable Characters: ${parableCharacters}
-${historyBlock}
+${historyBlock}${characterContextBlock}
 
 You will write THREE sections in order:
 1. TITLE (3-6 words)
@@ -399,21 +422,52 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
   };
 }
 
+export interface CharacterUpdate {
+  name: string;
+  values: string;
+  memories: { event: string; perspective: string }[];
+}
+
 export interface LessonMeta {
   title: string;
   sonnet: string;
   dallePrompt: string;
   followUpQuestion: string;
   characters: { name: string; pronoun: string; age?: string; personality?: string; role?: string }[];
+  characterUpdates: CharacterUpdate[];
 }
 
 export async function generateLessonMeta(
-  opts: { standardContent: string; parableContent: string; seriesName: string; newDay: number; existingCharacters: { name: string; pronoun: string; age?: string; personality?: string; role?: string }[] }
+  opts: { 
+    standardContent: string; 
+    parableContent: string; 
+    seriesName: string; 
+    newDay: number; 
+    existingCharacters: { 
+      name: string; 
+      pronoun: string; 
+      age?: string; 
+      personality?: string; 
+      role?: string;
+      values?: string;
+      memories?: { event: string; perspective: string; lessonNumber: number }[];
+    }[] 
+  }
 ): Promise<LessonMeta> {
   const { standardContent, parableContent, seriesName, newDay, existingCharacters } = opts;
 
   const charsDesc = existingCharacters.length > 0
-    ? `Existing characters:\n${existingCharacters.map(c => `- ${c.name} (${c.pronoun}, ${c.role || 'character'})`).join('\n')}`
+    ? `Existing characters:\n${existingCharacters.map(c => {
+        let desc = `- ${c.name} (${c.pronoun}, ${c.role || 'character'})`;
+        if (c.values) desc += `\n  Current Values: ${c.values}`;
+        if (c.memories && c.memories.length > 0) {
+          desc += `\n  Current Memories (${c.memories.length}):`;
+          c.memories.forEach(m => {
+            desc += `\n    • Lesson ${m.lessonNumber}: ${m.event}`;
+          });
+        }
+        return desc;
+      }).join('\n')}`
     : '';
 
   return callTool<LessonMeta>('extract_lesson_meta', {
@@ -441,8 +495,32 @@ export async function generateLessonMeta(
             required: ['name', 'pronoun'],
           },
         },
+        characterUpdates: {
+          type: 'array',
+          description: `For each character in this lesson's parable, extract their updated values and new memories from this lesson. Values: max 5 sentences describing beliefs, desires, understanding of the world (keep same if no change). Memories: key events from THIS lesson and character's perspective (2-3 new memories per lesson).`,
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Character name' },
+              values: { type: 'string', description: 'Character values (max 5 sentences). Rewrite only if changed through consequences/growth. Keep previous values if no change.' },
+              memories: {
+                type: 'array',
+                description: 'New memories from this lesson (2-3 key events)',
+                items: {
+                  type: 'object',
+                  properties: {
+                    event: { type: 'string', description: 'What happened in this lesson' },
+                    perspective: { type: 'string', description: 'How the character perceived/felt about this event' },
+                  },
+                  required: ['event', 'perspective'],
+                },
+              },
+            },
+            required: ['name', 'values', 'memories'],
+          },
+        },
       },
-      required: ['title', 'sonnet', 'dallePrompt', 'followUpQuestion', 'characters'],
+      required: ['title', 'sonnet', 'dallePrompt', 'followUpQuestion', 'characters', 'characterUpdates'],
     },
   }, [{
     role: 'user',
