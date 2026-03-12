@@ -186,26 +186,34 @@ export default function SeriesPage() {
           );
         })}
 
-        {/* Placeholder card for first lesson being generated */}
-        {generating && lessons.length === 0 && (
-          <Link
-            to={`/${series.key}/lesson/1?stream=true`}
-            className="lesson-card"
-            onClick={() => { esRef.current?.close(); esRef.current = null; }}
-          >
-            {placeholderImage ? (
-              <img src={placeholderImage} alt={placeholderTitle || 'Generating...'} className="lesson-card-img" />
-            ) : (
-              <div className="skeleton-img" />
-            )}
-            <div className="lesson-card-text">
-              <span className="lesson-day">Day 1</span>
-              <span className="lesson-title">
-                {placeholderTitle || (phaseLabel[placeholderPhase] || 'Generating...')}
-              </span>
-            </div>
-          </Link>
-        )}
+        {/* Placeholder card for lesson being generated */}
+        {generating && (() => {
+          const nextLessonNum = lessons.length > 0 ? Math.max(...lessons.map(l => l.sortOrder)) + 1 : 1;
+          const lastLesson = lessons.length > 0 ? lessons[lessons.length - 1] : null;
+          const questionToAnswer = nextLessonNum === 1 ? series.anchor : (lastLesson?.followUpQuestion || '');
+          
+          return (
+            <Link
+              to={`/${series.key}/lesson/${nextLessonNum}?stream=true`}
+              className="lesson-card"
+              onClick={() => { esRef.current?.close(); esRef.current = null; }}
+              style={{ border: '2px solid var(--gold)', background: 'var(--gold-bg)' }}
+            >
+              {placeholderImage ? (
+                <img src={placeholderImage} alt={placeholderTitle || 'Generating...'} className="lesson-card-img" />
+              ) : (
+                <div className="skeleton-img" />
+              )}
+              <div className="lesson-card-text">
+                <span className="lesson-day">Lesson {nextLessonNum}</span>
+                <span className="lesson-title" style={{ color: 'var(--gold)' }}>
+                  {placeholderTitle || (phaseLabel[placeholderPhase] || '⏳ Generating...')}
+                </span>
+                {questionToAnswer && <span className="lesson-preview">{questionToAnswer}</span>}
+              </div>
+            </Link>
+          );
+        })()}
       </div>
 
       {user?.role === 'admin' && !generating && lessons.length > 0 && (
