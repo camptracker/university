@@ -46,7 +46,9 @@ export default function LessonPage() {
     window.scrollTo(0, 0); 
     hasScrolledRef.current = false;
     
-    // Reset all streaming state when lesson changes
+    // Reset all state when navigating to a different lesson
+    setLesson(null); // Clear old lesson data to prevent race conditions
+    setPrevQuestion(null);
     setStreamPhase('');
     setStreamTitle('');
     setStreamStandard('');
@@ -161,7 +163,9 @@ export default function LessonPage() {
   useEffect(() => {
     if (!series) return;
 
-    const currentSort = lesson?.sortOrder || Number(sortOrder);
+    // In streaming mode, always use sortOrder from URL (not lesson object) to avoid race conditions
+    // When navigating from lesson N to lesson N+1, lesson state may still contain lesson N data
+    const currentSort = isStreaming ? Number(sortOrder) : (lesson?.sortOrder || Number(sortOrder));
     if (currentSort === 1) {
       // For Lesson 1, use the series anchor question
       setPrevQuestion(series.anchor);
@@ -177,7 +181,7 @@ export default function LessonPage() {
         }
       })
       .catch(console.error);
-  }, [lesson, series, sortOrder]);
+  }, [lesson, series, sortOrder, isStreaming]);
 
   // Streaming mode: open SSE (wait for previous lesson to exist first if not Lesson 1)
   useEffect(() => {
