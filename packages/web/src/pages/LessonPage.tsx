@@ -97,6 +97,7 @@ export default function LessonPage() {
     setStreamImage(null);
     setStreamDone(false);
     setWaitingForGen(false);
+    setAutoScrollSpeed('off'); // Stop auto-scroll when navigating
     
     // Close any existing event source
     if (esRef.current) {
@@ -419,6 +420,20 @@ export default function LessonPage() {
             )}
           </nav>
         )}
+
+        {/* Auto-scroll button */}
+        <button
+          className="auto-scroll-btn"
+          onClick={cycleScrollSpeed}
+          aria-label="Toggle auto-scroll"
+          title={`Auto-scroll: ${autoScrollSpeed}`}
+        >
+          {autoScrollSpeed === 'off' && '▶'}
+          {autoScrollSpeed === 'slow' && '▶'}
+          {autoScrollSpeed === 'medium' && '▶▶'}
+          {autoScrollSpeed === 'fast' && '▶▶▶'}
+          <span className="auto-scroll-speed">{autoScrollSpeed === 'off' ? 'Off' : autoScrollSpeed}</span>
+        </button>
       </div>
     );
   }
@@ -449,6 +464,20 @@ export default function LessonPage() {
           <div className="skeleton-line skeleton-long" style={{ marginTop: '1rem' }} />
           <div className="skeleton-line skeleton-long" style={{ marginTop: '0.75rem' }} />
         </div>
+
+        {/* Auto-scroll button */}
+        <button
+          className="auto-scroll-btn"
+          onClick={cycleScrollSpeed}
+          aria-label="Toggle auto-scroll"
+          title={`Auto-scroll: ${autoScrollSpeed}`}
+        >
+          {autoScrollSpeed === 'off' && '▶'}
+          {autoScrollSpeed === 'slow' && '▶'}
+          {autoScrollSpeed === 'medium' && '▶▶'}
+          {autoScrollSpeed === 'fast' && '▶▶▶'}
+          <span className="auto-scroll-speed">{autoScrollSpeed === 'off' ? 'Off' : autoScrollSpeed}</span>
+        </button>
       </div>
     );
   }
