@@ -5,7 +5,6 @@
  *
  * Single text input for a topic string. On submit, POSTs to /api/series with {topic}.
  * On success, navigates to /:series.key.
- * Handles rate limit (429): shows "max 3 series per day" message.
  * Note: series creation is async — the API returns the series before the first lesson
  * is generated. The user lands on SeriesPage which will show generation status.
  */
@@ -45,12 +44,8 @@ export default function NewSeriesPage() {
       navigate(`/${res.data.key}`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create series';
-      const axiosErr = err as { response?: { data?: { error?: string }; status?: number } };
-      if (axiosErr.response?.status === 429) {
-        setError('Rate limit: you can create up to 3 series per day.');
-      } else {
-        setError(axiosErr.response?.data?.error || msg);
-      }
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setError(axiosErr.response?.data?.error || msg);
     } finally {
       setLoading(false);
     }
@@ -64,12 +59,8 @@ export default function NewSeriesPage() {
       navigate(`/${res.data.key}`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create series';
-      const axiosErr = err as { response?: { data?: { error?: string }; status?: number } };
-      if (axiosErr.response?.status === 429) {
-        setError('Rate limit: you can create up to 3 series per day.');
-      } else {
-        setError(axiosErr.response?.data?.error || msg);
-      }
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setError(axiosErr.response?.data?.error || msg);
       setLoading(false);
     }
   };

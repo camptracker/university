@@ -4,15 +4,14 @@
  * Routes:
  * - GET    /api/series                      — all active series, sorted by most recent
  * - GET    /api/series/popular              — top 20 by most recent
- * - POST   /api/series                      — create series from {topic}; auth required; 3/user/day limit
+ * - POST   /api/series                      — create series from {topic}; auth required; no rate limit
  *   Triggers async first-lesson generation; returns series immediately (no lesson yet)
  * - POST   /api/series/:seriesId/generate   — trigger next lesson generation; admin only
  * - GET    /api/series/:seriesId/generation-status — returns {generating: boolean}
  * - DELETE /api/series/:seriesId            — soft-delete series + lessons; admin only
  *   Also hard-deletes standards, subscriptions, and the active GenerationJob
  *
- * Dependencies: generationService (createSeriesWithFirstLesson, createLessonForSeries),
- * rateLimiter (checkCreateSeriesLimit), auth middleware
+ * Dependencies: generationService (createSeriesWithFirstLesson, createLessonForSeries), auth middleware
  */
 import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
@@ -21,7 +20,6 @@ import { Lesson } from '../models/Lesson.js';
 import { Subscription } from '../models/Subscription.js';
 import { GenerationJob } from '../models/GenerationJob.js';
 import { requireAuth, requireAdmin, type AuthPayload } from '../middleware/auth.js';
-import { checkCreateSeriesLimit } from '../middleware/rateLimiter.js';
 import { createSeriesWithFirstLesson, createLessonForSeries } from '../services/generationService.js';
 import { streamLesson, generateLessonMeta } from '../services/aiTools.js';
 import { generateAndUploadImage } from '../services/imageService.js';
@@ -116,14 +114,9 @@ router.get('/demo-stream', async (req: Request, res: Response) => {
   res.end();
 });
 
-// POST /api/series - create new series (auth, rate 3/user/day)
+// POST /api/series - create new series (auth, no rate limit)
 router.post('/', requireAuth, async (req: Request, res: Response) => {
   const userId = req.authUser!.userId;
-
-  if (!checkCreateSeriesLimit(userId)) {
-    res.status(429).json({ error: 'Rate limit: max 3 series per day' });
-    return;
-  }
 
   const { topic } = req.body;
   if (!topic || typeof topic !== 'string') {
