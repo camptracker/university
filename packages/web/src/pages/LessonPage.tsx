@@ -8,7 +8,6 @@
  */
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import StreamingText from '../components/StreamingText.js';
 import ParableRenderer from '../components/ParableRenderer.js';
 import api, { type APILesson, type APISeries, type APILessonsResponse } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -343,7 +342,11 @@ export default function LessonPage() {
           {/* Main parable content - never unmounts */}
           <div className="parable-main">
             {streamParable ? (
-              <StreamingText text={streamParable} className="" />
+              <ParableRenderer 
+                text={streamParable} 
+                answeringQuestion={prevQuestion}
+                characters={series?.characters}
+              />
             ) : streamPhase !== 'error' && (
               <div style={{ padding: '1rem 0' }}>
                 <div className="skeleton-line skeleton-long" />
@@ -474,6 +477,7 @@ export default function LessonPage() {
           text={lesson.parable} 
           answeringQuestion={prevQuestion}
           followUpQuestion={lesson.followUpQuestion}
+          characters={series?.characters}
         />
       )}
 

@@ -68,12 +68,20 @@ export default api;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface CharacterMemory {
+  event: string;
+  perspective: string;
+  lessonNumber: number;
+}
+
 export interface Character {
   name: string;
   pronoun: string;
   age?: string;
   personality?: string;
   role?: string;
+  values?: string;
+  memories?: CharacterMemory[];
 }
 
 export interface APISeries {
