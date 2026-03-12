@@ -92,7 +92,7 @@ export async function generateFullLesson(opts: GenerateFullLessonOpts): Promise<
 
   // Build history block
   const historyBlock = prevLessons.length > 0
-    ? `Previously covered lessons (DO NOT repeat topics or questions):\n${prevLessons.map((l, i) => `- Day ${i + 1}: "${l.title}" (Q: ${l.followUpQuestion})`).join('\n')}`
+    ? `Previously covered lessons (DO NOT repeat topics or questions):\n${prevLessons.map((l, i) => `- Lesson ${i + 1}: "${l.title}" (Q: ${l.followUpQuestion})`).join('\n')}`
     : '';
 
   const systemPrompt = `You are a lesson generator for the "${seriesName}" series.
@@ -104,9 +104,7 @@ Generate a lesson in JSON format with these exact keys: standard, parable, sonne
 
 The "standard" must follow this format exactly:
 
-Day ${newDay}: [Title]
-
-${tomorrowQuestion ? `[IMPORTANT: The previous lesson ended with this question: "${tomorrowQuestion}" — You MUST open the lesson by directly answering this question in 2-3 sentences before moving on. This creates continuity between lessons.]` : `[Brief intro to the topic if Day 1]`}
+${tomorrowQuestion ? `[IMPORTANT: The previous lesson ended with this question: "${tomorrowQuestion}" — You MUST open the lesson by directly answering this question in 2-3 sentences before moving on. This creates continuity between lessons.]` : `[Brief intro to the topic]`}
 
 The Concept
 [1-2 sentences]
@@ -129,7 +127,7 @@ Use ** for bold markdown on section headers and key terms.
 The "parable" must continue the story using ${parableCharacters}, teaching the EXACT same concept as the standard. End with a moral and a teaser for tomorrow. Use rich, literary prose.
 Parable formatting: **Bold** all character names every time they appear. Wrap all spoken dialogue in *italics* (e.g. *"The seed does not rush,"* **Sable** whispered). Use --- between major scene transitions.
 
-The "sonnet" must be a 14-line Shakespearean sonnet (ABAB CDCD EFEF GG), titled "Sonnet [Roman numeral for day ${newDay}]: [Title]". Wrap the title in bold. The final couplet must be italicized with *. The sonnet should capture the lesson's essence poetically.
+The "sonnet" must be a 14-line Shakespearean sonnet (ABAB CDCD EFEF GG), titled "Sonnet [Roman numeral for lesson ${newDay}]: [Title]". Wrap the title in bold. The final couplet must be italicized with *. The sonnet should capture the lesson's essence poetically.
 
 The "dallePrompt" should describe a classical oil painting scene inspired by the sonnet's imagery. Do NOT include this boilerplate in dallePrompt — just describe the scene. I will add the style instructions.
 
@@ -166,7 +164,7 @@ Return ONLY valid JSON. No markdown code fences. No explanation.`;
       required: ['title', 'standard', 'parable', 'sonnet', 'dallePrompt', 'followUpQuestion', 'characters'],
     },
   }, [
-    { role: 'user', content: `Generate Day ${newDay} lesson for the "${seriesName}" series.` },
+    { role: 'user', content: `Generate lesson ${newDay} for the "${seriesName}" series.` },
   ], systemPrompt);
 }
 
@@ -209,7 +207,7 @@ export async function streamLesson(
   const wisdomLabel = 'Real-World Wisdom';
 
   const historyBlock = prevLessons.length > 0
-    ? `Previously covered lessons (DO NOT repeat topics or questions):\n${prevLessons.map((l, i) => `- Day ${i + 1}: "${l.title}" (Q: ${l.followUpQuestion})`).join('\n')}`
+    ? `Previously covered lessons (DO NOT repeat topics or questions):\n${prevLessons.map((l, i) => `- Lesson ${i + 1}: "${l.title}" (Q: ${l.followUpQuestion})`).join('\n')}`
     : '';
 
   const characterContextBlock = characterContext && characterContext.length > 0
@@ -244,7 +242,7 @@ Then output exactly this line: ${TITLE_DELIMITER}
 SECTION 2 — PARABLE:
 Write a CONCISE parable story in markdown using the characters above (${parableCharacters}).
 **Target length: 250-400 words maximum** — keep it tight and impactful.
-The parable must teach the concept for Day ${newDay}.
+The parable must teach the concept for this lesson.
 ${tomorrowQuestion ? `The previous lesson ended with: "${tomorrowQuestion}" — the parable should explore this theme.` : 'This is the first lesson — introduce the characters and the series theme.'}
 End with a moral. Use rich, literary prose but stay brief.
 
@@ -259,9 +257,7 @@ Then output exactly: ${SECTION_DELIMITER}
 SECTION 3 — STANDARD LESSON (write this last):
 Follow this format exactly:
 
-Day ${newDay}: [Title]
-
-${tomorrowQuestion ? `[IMPORTANT: The previous lesson ended with this question: "${tomorrowQuestion}" — You MUST open by directly answering this question in 2-3 sentences before moving on.]` : `[Brief intro to the topic if Day 1]`}
+${tomorrowQuestion ? `[IMPORTANT: The previous lesson ended with this question: "${tomorrowQuestion}" — You MUST open by directly answering this question in 2-3 sentences before moving on.]` : `[Brief intro to the topic]`}
 
 The Concept
 [1-2 sentences]
@@ -294,7 +290,7 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
     model: STREAM_MODEL,
     max_tokens: 4096,
     system,
-    messages: [{ role: 'user', content: `Write Day ${newDay}: title, parable, then standard lesson.` }],
+    messages: [{ role: 'user', content: `Write lesson ${newDay}: title, parable, then standard lesson.` }],
   });
 
   for await (const event of stream) {
@@ -477,7 +473,7 @@ export async function generateLessonMeta(
       type: 'object' as const,
       properties: {
         title: { type: 'string', description: 'Short lesson title (3-6 words) extracted from the standard content. Plain text only, no markdown formatting.' },
-        sonnet: { type: 'string', description: `A 14-line Shakespearean sonnet (ABAB CDCD EFEF GG), titled "Sonnet [Roman numeral for day ${newDay}]: [Title]". Bold title. Final couplet italicized with *.` },
+        sonnet: { type: 'string', description: `A 14-line Shakespearean sonnet (ABAB CDCD EFEF GG), titled "Sonnet [Roman numeral for lesson ${newDay}]: [Title]". Bold title. Final couplet italicized with *.` },
         dallePrompt: { type: 'string', description: 'Classical oil painting scene description inspired by the lesson imagery. Just the scene, no style boilerplate.' },
         followUpQuestion: { type: 'string', description: "The Tomorrow's Question from the standard lesson" },
         characters: {
@@ -524,7 +520,7 @@ export async function generateLessonMeta(
     },
   }, [{
     role: 'user',
-    content: `Extract metadata from this lesson for the "${seriesName}" series (Day ${newDay}).
+    content: `Extract metadata from this lesson for the "${seriesName}" series (lesson ${newDay}).
 
 ${charsDesc}
 
