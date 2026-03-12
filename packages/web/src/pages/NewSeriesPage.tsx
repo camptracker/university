@@ -19,26 +19,15 @@ interface DailyTheme {
   topic: string;
 }
 
-const FALLBACK_THEMES: DailyTheme[] = [
-  { emoji: '💰', title: 'Financial Independence', topic: 'Financial independence through investing, saving, and building wealth' },
-  { emoji: '🏛️', title: 'Stoic Philosophy', topic: 'Stoic philosophy and practical wisdom for daily life' },
-  { emoji: '🧭', title: 'Emotional Intelligence', topic: 'Emotional intelligence and self-awareness' },
-  { emoji: '💕', title: 'Building Relationships', topic: 'Building and maintaining deep, meaningful relationships' },
-  { emoji: '⏳', title: 'Health & Longevity', topic: 'Health, longevity, and evidence-based wellness practices' },
-  { emoji: '🤝', title: 'Negotiation', topic: 'Negotiation tactics and persuasion' },
-  { emoji: '🧘', title: 'Habits & Systems', topic: 'Building habits and systems for productivity' },
-  { emoji: '🎵', title: 'Music Theory', topic: 'Music theory fundamentals and composition' },
-];
-
 export default function NewSeriesPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [dailyThemes, setDailyThemes] = useState<DailyTheme[]>(FALLBACK_THEMES);
+  const [dailyThemes, setDailyThemes] = useState<DailyTheme[]>([]);
 
-  // Fetch daily themes on mount
+  // Fetch daily AI-generated themes on mount
   useEffect(() => {
     api.get<{ themes: DailyTheme[]; generatedAt: string | null }>('/themes/daily')
       .then(res => {
@@ -48,7 +37,7 @@ export default function NewSeriesPage() {
       })
       .catch(err => {
         console.error('Failed to load daily themes:', err);
-        // Keep fallback themes
+        // No fallback - only show AI-generated themes
       });
   }, []);
 
@@ -119,22 +108,24 @@ export default function NewSeriesPage() {
         )}
       </form>
 
-      {/* Daily themes */}
-      <div style={{ marginTop: '2rem' }}>
-        <p className="form-hint" style={{ marginBottom: '0.75rem' }}>Or explore today's themes:</p>
-        <div className="topic-tags">
-          {dailyThemes.map(theme => (
-            <button
-              key={theme.topic}
-              className="topic-tag"
-              onClick={() => handleCreateSeries(theme.topic)}
-              disabled={loading}
-            >
-              {theme.emoji} {theme.title}
-            </button>
-          ))}
+      {/* Daily themes - only show if loaded from API */}
+      {dailyThemes.length > 0 && (
+        <div style={{ marginTop: '2rem' }}>
+          <p className="form-hint" style={{ marginBottom: '0.75rem' }}>Recommended themes:</p>
+          <div className="topic-tags">
+            {dailyThemes.map(theme => (
+              <button
+                key={theme.topic}
+                className="topic-tag"
+                onClick={() => handleCreateSeries(theme.topic)}
+                disabled={loading}
+              >
+                {theme.emoji} {theme.title}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
