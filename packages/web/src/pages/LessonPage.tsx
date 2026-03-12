@@ -344,7 +344,6 @@ export default function LessonPage() {
             {streamParable ? (
               <ParableRenderer 
                 text={streamParable} 
-                answeringQuestion={prevQuestion}
                 characters={series?.characters}
               />
             ) : streamPhase !== 'error' && (
