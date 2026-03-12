@@ -258,6 +258,7 @@ export default function LessonPage() {
       // SSE failed (possibly 409 — generation already running from before reload)
       // Fall back to polling for the lesson to appear
       setWaitingForGen(true);
+      setSearchParams({}, { replace: true }); // Remove ?stream=true
       if (series) {
         pollRef.current = setInterval(async () => {
           try {
@@ -270,7 +271,6 @@ export default function LessonPage() {
               const full = await api.get<APILesson>(`/lessons/${l._id}`);
               setLesson(full.data);
               setWaitingForGen(false);
-              setSearchParams({}, { replace: true });
               if (user) api.post(`/lessons/${full.data._id}/read`).catch(() => {});
             }
           } catch { /* ignore */ }
