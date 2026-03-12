@@ -114,7 +114,13 @@ body {
 .container {
   max-width: 680px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 2rem 1.5rem 8rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-bottom: 7rem;
+  }
 }
 
 /* Breadcrumb */
