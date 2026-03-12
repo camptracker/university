@@ -684,3 +684,56 @@ body {
 .follow-up-question { margin-top: 2rem; padding: 1.25rem; border: 1px solid var(--gold); border-radius: 8px; background: rgba(218,165,32,0.08); }
 .follow-up-question h3 { color: var(--gold); margin: 0 0 0.5rem; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .follow-up-question .follow-up-text { margin: 0; font-style: italic; font-size: 1.1rem; line-height: 1.6; color: var(--text); }
+
+/* Auto-scroll button */
+.auto-scroll-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--gold-dim);
+  color: var(--bg);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+  z-index: 100;
+}
+
+.auto-scroll-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.auto-scroll-btn:active {
+  transform: scale(0.95);
+}
+
+.auto-scroll-speed {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  margin-top: -0.1rem;
+}
+
+@media (max-width: 768px) {
+  .auto-scroll-btn {
+    width: 56px;
+    height: 56px;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    font-size: 1rem;
+  }
+  
+  .auto-scroll-speed {
+    font-size: 0.6rem;
+  }
+}
