@@ -127,25 +127,9 @@ export default function LessonPage() {
           // Lesson doesn't exist yet — check if generation is in progress
           return api.get<{ generating: boolean }>(`/series/${foundSeries!._id}/generation-status`).then(gs => {
             if (gs.data.generating) {
-              // Poll every 2s until lesson appears
-              setWaitingForGen(true);
+              // Resume streaming by adding ?stream=true
+              setSearchParams({ stream: 'true' }, { replace: true });
               setLoading(false);
-              const sid = foundSeries!._id;
-              pollRef.current = setInterval(async () => {
-                try {
-                  const lr = await api.get<APILessonsResponse>(`/series/${sid}/lessons?page=1`);
-                  setTotalLessons(lr.data.total);
-                  const l = lr.data.lessons.find(l => l.sortOrder === Number(sortOrder));
-                  if (l) {
-                    clearInterval(pollRef.current!);
-                    pollRef.current = null;
-                    const full = await api.get<APILesson>(`/lessons/${l._id}`);
-                    setLesson(full.data);
-                    setWaitingForGen(false);
-                    if (user) api.post(`/lessons/${full.data._id}/read`).catch(() => {});
-                  }
-                } catch { /* ignore */ }
-              }, 2000);
             }
           });
         }
