@@ -127,6 +127,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           <div className="sidebar-version">
             <div>v{__APP_VERSION__}</div>
             <div className="sidebar-version-msg">{__APP_COMMIT_MSG__}</div>
+            <div className="sidebar-version-time">{__APP_COMMIT_TIME__}</div>
           </div>
         </div>
       </aside>

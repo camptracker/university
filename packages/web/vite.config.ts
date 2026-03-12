@@ -7,9 +7,10 @@ const getGitInfo = () => {
   try {
     const hash = execSync('git rev-parse --short HEAD').toString().trim();
     const message = execSync('git log -1 --pretty=%s').toString().trim();
-    return { hash, message };
+    const timestamp = execSync('git log -1 --pretty=%cd --date=format:%Y-%m-%d %H:%M:%S').toString().trim();
+    return { hash, message, timestamp };
   } catch {
-    return { hash: 'dev', message: 'Development' };
+    return { hash: 'dev', message: 'Development', timestamp: new Date().toISOString() };
   }
 };
 
@@ -20,6 +21,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(gitInfo.hash),
     __APP_COMMIT_MSG__: JSON.stringify(gitInfo.message),
+    __APP_COMMIT_TIME__: JSON.stringify(gitInfo.timestamp),
   },
   server: {
     proxy: {
