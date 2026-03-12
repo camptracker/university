@@ -303,8 +303,9 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
             callbacks.onParableDelta(trimmedParable);
           }
         } else {
-          // Still in title — emit delta but keep small buffer (10 chars)
-          const bufferSize = 10;
+          // Still in title — emit delta but keep buffer to avoid emitting partial delimiter
+          // Check if accumulated might start containing the delimiter
+          const bufferSize = TITLE_DELIMITER.length; // Keep full delimiter length as buffer
           const safeLen = Math.max(0, accumulated.length - bufferSize);
           const safeText = accumulated.slice(0, safeLen);
           const newTitle = safeText.slice(titleText.length);
@@ -339,8 +340,8 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
           }
           // Note: No need to reset accumulated here since standard section emits chunks directly
         } else {
-          // Still in parable — emit delta but keep small buffer (20 chars)
-          const bufferSize = 20;
+          // Still in parable — emit delta but keep buffer to avoid emitting partial delimiter
+          const bufferSize = SECTION_DELIMITER.length; // Keep full delimiter length as buffer
           const safeLen = Math.max(0, accumulated.length - bufferSize);
           const safeText = accumulated.slice(0, safeLen);
           const newParable = safeText.slice(parableText.length);
