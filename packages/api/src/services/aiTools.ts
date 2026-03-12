@@ -172,7 +172,7 @@ Return ONLY valid JSON. No markdown code fences. No explanation.`;
 
 // ─── Streaming Functions ──────────────────────────────────────────────────────
 
-const STREAM_MODEL = 'claude-sonnet-4-20250514';
+const STREAM_MODEL = 'claude-haiku-4-5';
 const TITLE_DELIMITER = '---TITLE_BREAK---';
 const SECTION_DELIMITER = '---LESSON_SECTION_BREAK---';
 
@@ -195,7 +195,7 @@ export interface StreamCallbacks {
 export async function streamLesson(
   opts: StreamLessonOpts,
   callbacks: StreamCallbacks
-): Promise<{ title: string; parable: string; standard: string }> {
+): Promise<{ title: string; parable: string; standard: string; inputTokens: number; outputTokens: number }> {
   const { seriesName, seriesTheme, parableCharacters, newDay, tomorrowQuestion, prevLessons } = opts;
   const wisdomLabel = 'Real-World Wisdom';
 
@@ -264,6 +264,8 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
   let titleText = '';
   let parableText = '';
   let standardText = '';
+  let inputTokens = 0;
+  let outputTokens = 0;
 
   const stream = anthropic.messages.stream({
     model: STREAM_MODEL,
@@ -273,6 +275,14 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
   });
 
   for await (const event of stream) {
+    // Capture token usage when available
+    if (event.type === 'message_start' && event.message.usage) {
+      inputTokens = event.message.usage.input_tokens;
+    }
+    if (event.type === 'message_delta' && event.usage) {
+      outputTokens = event.usage.output_tokens;
+    }
+    
     if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
       const chunk = event.delta.text;
       accumulated += chunk;
@@ -383,7 +393,9 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
   return { 
     title: cleanTitle, 
     parable: parableText.trim(), 
-    standard: standardText.trim() 
+    standard: standardText.trim(),
+    inputTokens,
+    outputTokens
   };
 }
 

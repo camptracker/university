@@ -210,7 +210,7 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
 
     // Single streaming call: title, parable, then standard lesson
     safeSend('phase', { phase: 'title' });
-    const { title: lessonTitle, parable: parableContent, standard: standardContent } = await streamLesson({
+    const { title: lessonTitle, parable: parableContent, standard: standardContent, inputTokens, outputTokens } = await streamLesson({
       seriesName: series.title,
       seriesTheme: series.theme,
       parableCharacters: formatChars(series.characters || []),
@@ -252,6 +252,11 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       console.error('Image generation failed:', err);
     }
 
+    // Calculate pricing (Haiku 4.5: $0.80/MTok input, $4.00/MTok output)
+    const INPUT_PRICE_PER_TOKEN = 0.80 / 1_000_000;
+    const OUTPUT_PRICE_PER_TOKEN = 4.00 / 1_000_000;
+    const pricingUSD = (inputTokens * INPUT_PRICE_PER_TOKEN) + (outputTokens * OUTPUT_PRICE_PER_TOKEN);
+
     // Save lesson
     const lesson = await Lesson.create({
       seriesId: series._id,
@@ -263,6 +268,9 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       image: imageUrl,
       parable: parableContent,
       poem: meta.sonnet,
+      inputTokens,
+      outputTokens,
+      pricingUSD,
     });
 
     // Merge new characters

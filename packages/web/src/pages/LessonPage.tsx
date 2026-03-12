@@ -483,6 +483,24 @@ export default function LessonPage() {
         </div>
       )}
 
+      {user?.role === 'admin' && lesson.pricingUSD !== undefined && (
+        <div style={{ 
+          marginTop: '2rem', 
+          padding: '1rem', 
+          backgroundColor: 'rgba(255, 215, 0, 0.1)', 
+          borderRadius: '8px',
+          fontSize: '0.875rem',
+          color: 'rgba(255, 255, 255, 0.7)'
+        }}>
+          <div style={{ marginBottom: '0.25rem' }}>
+            <strong style={{ color: 'var(--gold)' }}>Generation Cost:</strong> ${lesson.pricingUSD.toFixed(4)}
+          </div>
+          <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+            {lesson.inputTokens?.toLocaleString()} input tokens • {lesson.outputTokens?.toLocaleString()} output tokens
+          </div>
+        </div>
+      )}
+
       <nav className="bottom-nav">
         {sortNum > 1 ? (
           <Link to={`/${series.key}/lesson/${sortNum - 1}`} className="nav-link">← Lesson {sortNum - 1}</Link>

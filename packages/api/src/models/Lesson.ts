@@ -29,6 +29,9 @@ export interface ILesson extends Document {
   image?: string;
   parable?: string;
   poem?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  pricingUSD?: number;
   deletedAt?: Date;
   createdAt: Date;
 }
@@ -43,6 +46,9 @@ const LessonSchema = new Schema<ILesson>({
   image: String,
   parable: String,
   poem: String,
+  inputTokens: Number,
+  outputTokens: Number,
+  pricingUSD: Number,
   deletedAt: Date,
   createdAt: { type: Date, default: Date.now },
 });

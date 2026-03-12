@@ -101,6 +101,9 @@ export interface APILesson {
   parable?: string;
   poem?: string;
   read?: boolean;
+  inputTokens?: number;
+  outputTokens?: number;
+  pricingUSD?: number;
 }
 
 export interface APIUser {
