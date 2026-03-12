@@ -22,7 +22,11 @@ export default function ParableRenderer({ text, answeringQuestion, followUpQuest
       const childText = typeof children === 'string' ? children : 
                        (Array.isArray(children) ? children.join('') : String(children));
       
-      const character = characters.find(c => c.name === childText);
+      // Trim and normalize the name (remove possessive 's if present)
+      const normalizedName = childText.trim().replace(/'s$/, '');
+      const character = characters.find(c => c.name === normalizedName || c.name === childText.trim());
+      
+      console.log('Character check:', { childText, normalizedName, character: character?.name, totalCharacters: characters.length });
       
       if (character) {
         const isOpen = openTooltip === character.name;
