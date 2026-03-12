@@ -491,15 +491,15 @@ export default function LessonPage() {
         <div style={{ 
           marginTop: '2rem', 
           padding: '1rem', 
-          backgroundColor: 'rgba(255, 215, 0, 0.1)', 
+          backgroundColor: 'var(--gold-bg)', 
           borderRadius: '8px',
           fontSize: '0.875rem',
-          color: 'rgba(255, 255, 255, 0.7)'
+          color: 'var(--text)'
         }}>
           <div style={{ marginBottom: '0.25rem' }}>
             <strong style={{ color: 'var(--gold)' }}>Generation Cost:</strong> ${lesson.pricingUSD.toFixed(4)}
           </div>
-          <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             {lesson.inputTokens?.toLocaleString()} input tokens • {lesson.outputTokens?.toLocaleString()} output tokens
           </div>
         </div>
