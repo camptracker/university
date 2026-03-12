@@ -7,10 +7,10 @@ const getGitInfo = () => {
   try {
     const hash = execSync('git rev-parse --short HEAD').toString().trim();
     const message = execSync('git log -1 --pretty=%s').toString().trim();
-    const timestamp = execSync('git log -1 --pretty=%cd --date=format:%Y-%m-%d %H:%M:%S').toString().trim();
-    return { hash, message, timestamp };
+    const unixTimestamp = execSync('git log -1 --pretty=%ct').toString().trim();
+    return { hash, message, timestamp: parseInt(unixTimestamp) * 1000 }; // Convert to milliseconds
   } catch {
-    return { hash: 'dev', message: 'Development', timestamp: new Date().toISOString() };
+    return { hash: 'dev', message: 'Development', timestamp: Date.now() };
   }
 };
 

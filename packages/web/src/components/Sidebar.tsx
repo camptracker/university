@@ -127,7 +127,18 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           <div className="sidebar-version">
             <div>v{__APP_VERSION__}</div>
             <div className="sidebar-version-msg">{__APP_COMMIT_MSG__}</div>
-            <div className="sidebar-version-time">{__APP_COMMIT_TIME__}</div>
+            <div className="sidebar-version-time">
+              {new Date(__APP_COMMIT_TIME__).toLocaleString('en-US', {
+                timeZone: 'America/Los_Angeles',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+              })}
+            </div>
           </div>
         </div>
       </aside>

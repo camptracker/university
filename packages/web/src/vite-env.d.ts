@@ -2,4 +2,4 @@
 
 declare const __APP_VERSION__: string;
 declare const __APP_COMMIT_MSG__: string;
-declare const __APP_COMMIT_TIME__: string;
+declare const __APP_COMMIT_TIME__: number;
