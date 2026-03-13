@@ -127,9 +127,27 @@ export default function LessonPage() {
           // Lesson doesn't exist yet — check if generation is in progress
           return api.get<{ generating: boolean }>(`/series/${foundSeries!._id}/generation-status`).then(gs => {
             if (gs.data.generating) {
-              // Resume streaming by adding ?stream=true
-              setSearchParams({ stream: 'true' }, { replace: true });
+              // Generation in progress — poll for completion
+              const seriesId = foundSeries!._id;
+              setWaitingForGen(true);
               setLoading(false);
+              
+              // Start polling for lesson completion
+              pollRef.current = setInterval(async () => {
+                try {
+                  const lr = await api.get<APILessonsResponse>(`/series/${seriesId}/lessons?page=1`);
+                  setTotalLessons(lr.data.total);
+                  const l = lr.data.lessons.find(l => l.sortOrder === Number(sortOrder));
+                  if (l) {
+                    clearInterval(pollRef.current!);
+                    pollRef.current = null;
+                    const full = await api.get<APILesson>(`/lessons/${l._id}`);
+                    setLesson(full.data);
+                    setWaitingForGen(false);
+                    if (user) api.post(`/lessons/${full.data._id}/read`).catch(() => {});
+                  }
+                } catch { /* ignore */ }
+              }, 1000);
             }
           });
         }
@@ -259,26 +277,8 @@ export default function LessonPage() {
       es.close();
       esRef.current = null;
       // SSE failed (possibly 409 — generation already running from before reload)
-      // Fall back to polling for the lesson to appear
-      setWaitingForGen(true);
-      setSearchParams({}, { replace: true }); // Remove ?stream=true
-      if (series) {
-        pollRef.current = setInterval(async () => {
-          try {
-            const lr = await api.get<APILessonsResponse>(`/series/${series._id}/lessons?page=1`);
-            setTotalLessons(lr.data.total);
-            const l = lr.data.lessons.find(l => l.sortOrder === Number(sortOrder));
-            if (l) {
-              clearInterval(pollRef.current!);
-              pollRef.current = null;
-              const full = await api.get<APILesson>(`/lessons/${l._id}`);
-              setLesson(full.data);
-              setWaitingForGen(false);
-              if (user) api.post(`/lessons/${full.data._id}/read`).catch(() => {});
-            }
-          } catch { /* ignore */ }
-        }, 1000); // Poll every 1 second for faster updates
-      }
+      // Remove ?stream=true and let the normal mode effect handle polling
+      setSearchParams({}, { replace: true });
       });
     }
 
