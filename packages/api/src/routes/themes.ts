@@ -30,8 +30,20 @@ router.get('/daily', async (_req: Request, res: Response) => {
   }
 });
 
-// POST /api/themes/generate - manually trigger generation (admin only)
-router.post('/generate', requireAdmin, async (_req: Request, res: Response) => {
+// POST /api/themes/generate - manually trigger generation (admin only or API key)
+router.post('/generate', async (req: Request, res: Response) => {
+  // Check for API key auth (for cron/scripts) or admin JWT
+  const apiKey = req.headers['x-api-key'];
+  const validApiKey = process.env.THEME_API_KEY;
+  
+  if (apiKey && validApiKey && apiKey === validApiKey) {
+    // API key is valid, proceed
+  } else {
+    // Fall back to requireAdmin middleware
+    await requireAdmin(req, res, () => {});
+    if (res.headersSent) return; // If requireAdmin rejected, stop
+  }
+  
   try {
     const themes = await generateDailyThemes();
     res.json({ success: true, themes, generatedAt: new Date().toISOString() });
