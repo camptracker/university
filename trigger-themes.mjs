@@ -31,7 +31,8 @@ async function triggerThemes() {
     console.log('Generated at:', result.generatedAt);
     console.log('\nNew themes:');
     result.themes.forEach((theme, i) => {
-      console.log(`${i + 1}. ${theme}`);
+      console.log(`${i + 1}. ${theme.emoji} ${theme.title}`);
+      console.log(`   → ${theme.topic}`);
     });
     
   } catch (err) {
