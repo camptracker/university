@@ -4,23 +4,18 @@
  * Generates daily timeless themes that reflect current events, transformations,
  * values, and beliefs happening today. Uses Claude to research best practices
  * and create quality themes with credible sources.
+ * 
+ * Themes are stored in MongoDB (DailyThemes collection) for persistence across deploys.
  */
 import Anthropic from '@anthropic-ai/sdk';
-import fs from 'fs/promises';
-import path from 'path';
+import { DailyThemes } from '../models/DailyThemes.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const CACHE_PATH = path.join(process.cwd(), 'data', 'daily-themes.json');
 
 interface DailyTheme {
   emoji: string;
   title: string;
   topic: string;
-}
-
-interface CachedThemes {
-  themes: DailyTheme[];
-  generatedAt: string;
 }
 
 export async function generateDailyThemes(): Promise<DailyTheme[]> {
@@ -89,17 +84,21 @@ Generate 8 themes that someone would want to learn about today.`;
 
   const result = toolUse.input as { themes: DailyTheme[] };
   
-  // Cache the themes
-  const cached: CachedThemes = {
-    themes: result.themes,
-    generatedAt: new Date().toISOString(),
-  };
+  // Save to MongoDB (upsert to ensure only one document exists)
+  await DailyThemes.findOneAndUpdate(
+    {}, // Match any document
+    { 
+      themes: result.themes,
+      generatedAt: new Date(),
+    },
+    { 
+      upsert: true, 
+      new: true,
+      setDefaultsOnInsert: true,
+    }
+  );
 
-  // Ensure data directory exists
-  await fs.mkdir(path.dirname(CACHE_PATH), { recursive: true });
-  await fs.writeFile(CACHE_PATH, JSON.stringify(cached, null, 2));
-
-  console.log(`Generated ${result.themes.length} daily themes at ${cached.generatedAt}`);
+  console.log(`Generated and saved ${result.themes.length} daily themes to database`);
   
   return result.themes;
 }
