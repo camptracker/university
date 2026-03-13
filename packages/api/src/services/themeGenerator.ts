@@ -19,25 +19,37 @@ interface DailyTheme {
 }
 
 export async function generateDailyThemes(): Promise<DailyTheme[]> {
-  const systemPrompt = `You are a theme generation expert who creates timeless, compelling learning topics that reflect current events, cultural transformations, evolving values, and shifting beliefs in society.
+  const systemPrompt = `You are a theme generation expert who creates timeless, compelling learning themes that follow the formula: [Topic] + [Insight about the topic].
 
-Your task is to generate 8 high-quality educational themes that:
-1. Are timeless yet reflect what's happening in the world today
-2. Draw from credible sources and real trends
-3. Appeal to curious, growth-minded learners
-4. Balance immediate relevance with long-term value
-5. Cover diverse areas: technology, culture, psychology, economics, health, relationships, philosophy, skills
+A theme is the core message or truth about life that a story is trying to show. It's not the plot—it's the lesson or insight the reader walks away with.
 
-Best practices for theme creation:
-- Be specific but not narrow (e.g., "The Psychology of Remote Work" not just "Remote Work")
-- Include a perspective or angle (e.g., "How Social Media Rewired Social Connection")
-- Make it actionable and learnable
-- Avoid jargon; use clear, compelling language
-- Think about what people are genuinely curious about right now
+THE FORMULA:
+A strong theme = [Topic] + [Insight about the topic]
+
+Examples of strong themes:
+• Greed destroys relationships.
+• Courage grows when people face fear.
+• Money cannot replace genuine friendship.
+• Forgiveness brings freedom.
+• Hard work and perseverance create opportunity.
+• Love requires sacrifice.
+• Power corrupts those who seek control.
+• Family loyalty can overcome hardship.
+• Wealth without relationships leads to emptiness.
+
+❌ WEAK (single words): Love, Power, Family
+✅ STRONG (complete ideas): Love requires sacrifice. Power corrupts those who seek control. Family loyalty can overcome hardship.
+
+Your themes should:
+1. Be universal truths that apply to real life
+2. Be clear and concise (usually 1 sentence)
+3. Avoid instructions (not "You should help others" but "Helping others gives life meaning")
+4. Reflect timeless wisdom yet feel relevant to today's world
+5. Cover diverse areas: relationships, success, ethics, personal growth, society, work, health, meaning
 
 Today's date: ${new Date().toISOString().split('T')[0]}
 
-Generate 8 themes that someone would want to learn about today.`;
+Generate 8 themes using the [Topic] + [Insight] formula.`;
 
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5',
@@ -64,7 +76,7 @@ Generate 8 themes that someone would want to learn about today.`;
                 },
                 topic: {
                   type: 'string',
-                  description: 'Detailed topic description for series generation (1-2 sentences, specific and actionable)'
+                  description: 'Complete theme statement following [Topic] + [Insight] formula. Example: "Greed destroys relationships." This will be used as the series topic.'
                 }
               },
               required: ['emoji', 'title', 'topic']
@@ -75,7 +87,7 @@ Generate 8 themes that someone would want to learn about today.`;
       }
     }],
     tool_choice: { type: 'tool', name: 'generate_themes' },
-    messages: [{ role: 'user', content: 'Generate 8 timeless themes that reflect what\'s happening in the world today. Focus on truth, credible trends, and what people genuinely want to learn.' }],
+    messages: [{ role: 'user', content: 'Generate 8 timeless themes using the [Topic] + [Insight] formula. Each theme should be a complete statement (e.g., "Courage grows when people face fear" not just "Courage"). Make them feel relevant to what people are experiencing today.' }],
     system: systemPrompt,
   });
 
