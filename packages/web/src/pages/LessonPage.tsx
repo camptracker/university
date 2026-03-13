@@ -169,7 +169,6 @@ export default function LessonPage() {
   // Streaming mode: open SSE (wait for previous lesson to exist first if not Lesson 1)
   useEffect(() => {
     if (!isStreaming || !series) return;
-    setLoading(false);
 
     const currentDay = Number(sortOrder);
     const token = localStorage.getItem('accessToken');
@@ -185,11 +184,15 @@ export default function LessonPage() {
             .then(full => {
               setLesson(full.data);
               setSearchParams({}, { replace: true });
+              setLoading(false);
               if (user) api.post(`/lessons/${full.data._id}/read`).catch(() => {});
             })
             .catch(console.error);
           return;
         }
+        
+        // Lesson doesn't exist - proceed with streaming
+        setLoading(false);
 
         // Lesson doesn't exist yet, proceed with streaming checks
         if (currentDay > 1) {
@@ -284,8 +287,8 @@ export default function LessonPage() {
 
   const sortNum = Number(sortOrder);
 
-  // Streaming mode render
-  if (isStreaming || (streamParable && !lesson)) {
+  // Streaming mode render (only after we've confirmed lesson doesn't exist)
+  if ((isStreaming && !loading) || (streamParable && !lesson)) {
     const phaseLabel: Record<string, string> = {
       title: '✨ Creating title...',
       standard: '✍️ Preparing lesson...',
