@@ -328,6 +328,7 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
         // Check if title delimiter appears
         const titleDelimIdx = accumulated.indexOf(TITLE_DELIMITER);
         if (titleDelimIdx !== -1) {
+          console.log('[streamLesson] Found title delimiter at index', titleDelimIdx);
           // Extract title
           const beforeTitleDelim = accumulated.slice(0, titleDelimIdx).trim();
           const afterTitleDelim = accumulated.slice(titleDelimIdx + TITLE_DELIMITER.length);
@@ -365,6 +366,7 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
         // Check if parable→standard delimiter appears
         const delimIdx = accumulated.indexOf(SECTION_DELIMITER);
         if (delimIdx !== -1) {
+          console.log('[streamLesson] Found parable→standard delimiter at index', delimIdx);
           // Split: everything before delimiter is parable, after is standard
           const beforeDelim = accumulated.slice(0, delimIdx);
           const afterDelim = accumulated.slice(delimIdx + SECTION_DELIMITER.length);
@@ -430,6 +432,14 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
     .replace(/^\*(.+?)\*$/g, '$1')      // Remove surrounding *italic*
     .replace(/\*\*/g, '')               // Remove any remaining **
     .replace(/\*/g, '');                // Remove any remaining *
+
+  console.log('[streamLesson] Final lengths:', {
+    title: cleanTitle.length,
+    parable: parableText.trim().length,
+    standard: standardText.trim().length,
+    inputTokens,
+    outputTokens
+  });
 
   return { 
     title: cleanTitle, 

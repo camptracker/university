@@ -240,6 +240,11 @@ router.get('/:seriesId/generate-stream', async (req: Request, res: Response) => 
       },
     });
 
+    // Validate that we got all required content
+    if (!lessonTitle || !parableContent || lessonTitle.trim().length === 0 || parableContent.trim().length < 50) {
+      throw new Error(`Incomplete lesson generation: title=${lessonTitle?.length || 0} chars, parable=${parableContent?.length || 0} chars`);
+    }
+
     // Phase 3: Generate metadata (non-streaming, fast)
     safeSend('phase', { phase: 'meta' });
     const meta = await generateLessonMeta({
