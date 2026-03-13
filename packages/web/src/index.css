@@ -685,8 +685,3 @@ body {
 .follow-up-question h3 { color: var(--gold); margin: 0 0 0.5rem; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .follow-up-question .follow-up-text { margin: 0; font-style: italic; font-size: 1.1rem; line-height: 1.6; color: var(--text); }
 
-/* Auto-scroll button */
-  .auto-scroll-speed {
-    font-size: 0.6rem;
-  }
-}
