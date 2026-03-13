@@ -31,13 +31,15 @@ api.interceptors.request.use(config => {
   return config;
 });
 
-// Auto-refresh on 401
+// Auto-refresh on 401 and retry on network errors
 let refreshPromise: Promise<string | null> | null = null;
 
 api.interceptors.response.use(
   res => res,
   async err => {
     const original = err.config;
+    
+    // Handle 401: refresh token and retry
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true;
       if (!refreshPromise) {
@@ -60,6 +62,14 @@ api.interceptors.response.use(
         return api(original);
       }
     }
+    
+    // Handle network errors: retry once after 500ms delay
+    if (!err.response && !original._retried) {
+      original._retried = true;
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return api(original);
+    }
+    
     return Promise.reject(err);
   }
 );

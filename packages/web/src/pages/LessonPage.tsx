@@ -24,6 +24,7 @@ export default function LessonPage() {
   const [prevQuestion, setPrevQuestion] = useState<string | null>(null);
   const [totalLessons, setTotalLessons] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   // Streaming state
   const isStreaming = searchParams.get('stream') === 'true';
@@ -56,6 +57,7 @@ export default function LessonPage() {
     setStreamImage(null);
     setStreamDone(false);
     setWaitingForGen(false);
+    setNotFound(false);
     
     // Close any existing event source
     if (esRef.current) {
@@ -108,7 +110,10 @@ export default function LessonPage() {
     api.get<APISeries[]>('/series')
       .then(r => {
         const found = r.data.find(s => s.key === seriesKey);
-        if (!found) return;
+        if (!found) {
+          setNotFound(true);
+          return;
+        }
         foundSeries = found;
         setSeries(found);
         return api.get<APILessonsResponse>(`/series/${found._id}/lessons?page=1`);
@@ -416,7 +421,17 @@ export default function LessonPage() {
   }
 
   // Normal mode render (loading state)
-  if (loading) {
+  // Show not found only if explicitly determined (not just null during loading)
+  if (notFound) {
+    return (
+      <div className="container">
+        <p>Series not found.</p>
+        <Link to="/" className="nav-link">← Home</Link>
+      </div>
+    );
+  }
+  
+  if (loading || !lesson || !series) {
     return (
       <div className="container">
         <nav className="breadcrumb">
@@ -441,7 +456,6 @@ export default function LessonPage() {
       </div>
     );
   }
-  if (!lesson || !series) return <div className="container"><p>Lesson not found.</p><Link to="/" className="nav-link">← Home</Link></div>;
 
   return (
     <div className="container">

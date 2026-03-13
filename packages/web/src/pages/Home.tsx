@@ -20,7 +20,10 @@ export default function Home() {
   useEffect(() => {
     api.get<APISeries[]>('/series/popular')
       .then(r => setSeriesList(r.data))
-      .catch(() => {})
+      .catch((err) => {
+        console.error('Failed to load series:', err);
+        // Still set loading to false to show empty state rather than infinite loading
+      })
       .finally(() => setLoading(false));
   }, []);
 
