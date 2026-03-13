@@ -11,7 +11,7 @@
  * - POST /auth/refresh          — reads 'refreshToken' cookie; rotates tokens; returns {accessToken, user}
  * - POST /auth/logout           — clears refresh cookie; removes token from User doc
  *
- * Token details: accessToken expires 15min, refreshToken expires 30d (httpOnly, path=/auth).
+ * Token details: accessToken expires 7d, refreshToken expires 30d (httpOnly, path=/auth).
  * Refresh tokens are validated against the stored value in User.refreshToken (rotation).
  *
  * Dependencies: generateTokens, verifyRefreshToken (auth middleware), User model, passport

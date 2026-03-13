@@ -5,7 +5,7 @@
  * - `requireAuth` — rejects non-authenticated requests (sets req.authUser)
  * - `optionalAuth` — attaches req.authUser if token present, never rejects
  * - `requireAdmin` — like requireAuth but also checks role === 'admin'
- * - `generateTokens` — creates accessToken (15m) and refreshToken (30d) JWP pair
+ * - `generateTokens` — creates accessToken (7d) and refreshToken (30d) JWT pair
  * - `verifyRefreshToken` — validates token signature + DB stored token match
  * - `AuthPayload` interface — {userId, email, role}
  *
@@ -72,7 +72,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
 
 export function generateTokens(userId: string, email: string, role: string) {
   const payload: AuthPayload = { userId, email, role };
-  const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: '15m' });
+  const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: '7d' });
   const refreshToken = jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: '30d' });
   return { accessToken, refreshToken };
 }
