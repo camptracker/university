@@ -120,7 +120,7 @@ export default function NewSeriesPage() {
                 onClick={() => handleCreateSeries(theme.topic)}
                 disabled={loading}
               >
-                {theme.emoji} {theme.title}
+                {theme.emoji} {theme.topic}
               </button>
             ))}
           </div>
