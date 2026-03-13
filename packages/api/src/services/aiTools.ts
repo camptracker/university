@@ -17,15 +17,28 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error(`${operation} timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+}
+
 async function callTool<T>(toolName: string, toolDef: Anthropic.Tool, messages: Anthropic.MessageParam[], system?: string): Promise<T> {
-  const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5',
-    max_tokens: 4096,
-    tools: [toolDef],
-    tool_choice: { type: 'tool', name: toolName },
-    ...(system ? { system } : {}),
-    messages,
-  });
+  const response = await withTimeout(
+    anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 4096,
+      tools: [toolDef],
+      tool_choice: { type: 'tool', name: toolName },
+      ...(system ? { system } : {}),
+      messages,
+    }),
+    120000, // 2 minute timeout
+    `Claude API call for ${toolName}`
+  );
 
   const toolUse = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
   if (!toolUse) throw new Error(`No tool use found in response for ${toolName}`);
@@ -296,7 +309,9 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
     messages: [{ role: 'user', content: `Write lesson ${newDay}: title, parable, then standard lesson.` }],
   });
 
-  for await (const event of stream) {
+  // Wrap streaming in timeout (3 minutes)
+  const streamingPromise = (async () => {
+    for await (const event of stream) {
     // Capture token usage when available
     if (event.type === 'message_start' && event.message.usage) {
       inputTokens = event.message.usage.input_tokens;
@@ -390,20 +405,24 @@ The standard lesson MUST teach the EXACT same concept as the parable above.`;
     }
   }
 
-  // Flush any remaining buffered text
-  if (currentSection === 'title') {
-    const remaining = accumulated.slice(titleText.length);
-    if (remaining) {
-      titleText += remaining;
-      callbacks.onTitleDelta(remaining);
+    // Flush any remaining buffered text
+    if (currentSection === 'title') {
+      const remaining = accumulated.slice(titleText.length);
+      if (remaining) {
+        titleText += remaining;
+        callbacks.onTitleDelta(remaining);
+      }
+    } else if (currentSection === 'parable') {
+      const remaining = accumulated.slice(parableText.length);
+      if (remaining) {
+        parableText += remaining;
+        callbacks.onParableDelta(remaining);
+      }
     }
-  } else if (currentSection === 'parable') {
-    const remaining = accumulated.slice(parableText.length);
-    if (remaining) {
-      parableText += remaining;
-      callbacks.onParableDelta(remaining);
-    }
-  }
+  })();
+
+  // Wait for streaming with 3-minute timeout
+  await withTimeout(streamingPromise, 180000, 'Claude streaming');
 
   // Strip markdown formatting from title (**, *, etc.)
   const cleanTitle = titleText.trim()

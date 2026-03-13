@@ -20,29 +20,46 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error(`${operation} timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+}
+
 export async function generateAndUploadImage(
   prompt: string,
   seriesKey: string,
   sortOrder: number
 ): Promise<string> {
-  // Generate with DALL-E 3
-  const response = await openai.images.generate({
-    model: 'dall-e-3',
-    prompt,
-    size: '1024x1024',
-    quality: 'standard',
-    n: 1,
-  });
+  // Generate with DALL-E 3 (60 second timeout)
+  const response = await withTimeout(
+    openai.images.generate({
+      model: 'dall-e-3',
+      prompt,
+      size: '1024x1024',
+      quality: 'standard',
+      n: 1,
+    }),
+    60000,
+    'DALL-E image generation'
+  );
 
   const imageUrl = response.data?.[0]?.url;
   if (!imageUrl) throw new Error('No image URL from DALL-E');
 
-  // Upload to Cloudinary
-  const uploadResult = await cloudinary.uploader.upload(imageUrl, {
-    folder: `parable/${seriesKey}`,
-    public_id: `day-${sortOrder}`,
-    overwrite: true,
-  });
+  // Upload to Cloudinary (30 second timeout)
+  const uploadResult = await withTimeout(
+    cloudinary.uploader.upload(imageUrl, {
+      folder: `parable/${seriesKey}`,
+      public_id: `day-${sortOrder}`,
+      overwrite: true,
+    }),
+    30000,
+    'Cloudinary upload'
+  );
 
   return uploadResult.secure_url;
 }
