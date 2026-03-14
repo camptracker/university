@@ -106,9 +106,19 @@ export async function generateFullLesson(opts: GenerateFullLessonOpts): Promise<
     ? `Previously covered lessons (DO NOT repeat topics or questions):\n${prevLessons.map((l, i) => `- Lesson ${i + 1}: "${l.title}" (Q: ${l.followUpQuestion})`).join('\n')}`
     : '';
 
+  const characterGuidance = parableCharacters.includes('None yet')
+    ? `\n\nCharacter Creation Guidelines:
+- Create 2-3 unique characters with DISTINCTIVE, UNCOMMON names
+- AVOID overused names like: Kael, Aria, Rowan, Elara, Theron, Lyra, Sable, Maren, Tobren
+- Draw from diverse cultural traditions, historical periods, and linguistic roots
+- Mix familiar and unfamiliar sounds to create memorable, fresh names
+- Consider: ancient names, nature-inspired names, occupation-based names, or invented names that feel authentic
+- Examples of good variety: Osmund, Yael, Finn, Zhen, Amara, Ravi, Isolde, Kwame`
+    : '';
+
   const systemPrompt = `You are a lesson generator for the "${seriesName}" series.
 Theme: ${seriesTheme}
-Parable Characters: ${parableCharacters}
+Parable Characters: ${parableCharacters}${characterGuidance}
 ${historyBlock}
 
 Generate a lesson in JSON format with these exact keys: standard, parable, sonnet, dallePrompt
@@ -240,9 +250,19 @@ export async function streamLesson(
       }).join('\n\n')}`
     : '';
 
+  const characterGuidance = parableCharacters.includes('None yet')
+    ? `\n\nCharacter Creation Guidelines:
+- Create 2-3 unique characters with DISTINCTIVE, UNCOMMON names
+- AVOID overused names like: Kael, Aria, Rowan, Elara, Theron, Lyra, Sable, Maren, Tobren
+- Draw from diverse cultural traditions, historical periods, and linguistic roots
+- Mix familiar and unfamiliar sounds to create memorable, fresh names
+- Consider: ancient names, nature-inspired names, occupation-based names, or invented names that feel authentic
+- Examples of good variety: Osmund, Yael, Finn, Zhen, Amara, Ravi, Isolde, Kwame`
+    : '';
+
   const system = `You are a lesson generator for the "${seriesName}" series.
 Theme: ${seriesTheme}
-Parable Characters: ${parableCharacters}
+Parable Characters: ${parableCharacters}${characterGuidance}
 ${historyBlock}${planBlock}${characterContextBlock}
 
 You will write THREE sections in order:
